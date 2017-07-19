@@ -1,0 +1,40 @@
+<design author="Gen Nishida" date="07/19/2017" version="1.0">
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose theta="0" y="0" x="0"/>
+            <params height="5" width="30"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose theta="0" y="5" x="30.50000000000001"/>
+            <params height="-14" width="5"/>
+        </shape>
+        <shape type="polygon" subtype="1">
+            <pose theta="0" y="10" x="15"/>
+            <point y="0" x="0"/>
+            <point y="0.1999999999999993" x="22.1"/>
+            <point y="-18.9" x="22"/>
+            <point y="-19" x="12.4"/>
+            <point y="-10.3" x="0.5999999999999996"/>
+        </shape>
+    </layer>
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose theta="0" y="0" x="0"/>
+            <params height="5" width="30"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose theta="0.1011965966177499" y="18.71162803965818" x="29.60562227385768"/>
+            <params height="-14" width="5"/>
+        </shape>
+    </layer>
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose theta="0" y="0" x="0"/>
+            <params height="5" width="30"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose theta="-4.708336317668167" y="5.471651968704812" x="16.01018911324163"/>
+            <params height="-14" width="5"/>
+        </shape>
+    </layer>
+</design>
