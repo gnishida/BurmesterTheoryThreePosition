@@ -67,6 +67,7 @@ namespace canvas {
 		void redo();
 		void copySelectedShapes();
 		void pasteCopiedShapes();
+		void circularRepeat(int num_repeat);
 		void setMode(int mode);
 		void setLayer(int layer_id);
 		void open(const QString& filename);
@@ -89,7 +90,7 @@ namespace canvas {
 		void calculateSolutions();
 		int findSolution(const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions, const glm::dvec2& pt);
 
-		public slots:
+	public slots:
 		void animation_update();
 
 	protected:

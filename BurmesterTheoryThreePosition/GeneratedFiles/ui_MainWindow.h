@@ -56,6 +56,8 @@ public:
     QAction *actionOptions;
     QAction *actionLinkageRegion;
     QAction *actionLinkageAvoidance;
+    QAction *actionTest;
+    QAction *actionCircularRepeat;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -144,6 +146,10 @@ public:
         actionLinkageAvoidance = new QAction(MainWindowClass);
         actionLinkageAvoidance->setObjectName(QStringLiteral("actionLinkageAvoidance"));
         actionLinkageAvoidance->setCheckable(true);
+        actionTest = new QAction(MainWindowClass);
+        actionTest->setObjectName(QStringLiteral("actionTest"));
+        actionCircularRepeat = new QAction(MainWindowClass);
+        actionCircularRepeat->setObjectName(QStringLiteral("actionCircularRepeat"));
         centralWidget = new QWidget(MainWindowClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         MainWindowClass->setCentralWidget(centralWidget);
@@ -207,6 +213,8 @@ public:
         menuEdit->addSeparator();
         menuEdit->addAction(actionDelete);
         menuEdit->addAction(actionSelectAll);
+        menuEdit->addSeparator();
+        menuEdit->addAction(actionCircularRepeat);
 
         retranslateUi(MainWindowClass);
 
@@ -257,6 +265,8 @@ public:
         actionOptions->setText(QApplication::translate("MainWindowClass", "Options", 0));
         actionLinkageRegion->setText(QApplication::translate("MainWindowClass", "Linkage Region", 0));
         actionLinkageAvoidance->setText(QApplication::translate("MainWindowClass", "Linkage Avoidance", 0));
+        actionTest->setText(QApplication::translate("MainWindowClass", "Test", 0));
+        actionCircularRepeat->setText(QApplication::translate("MainWindowClass", "Circular Repeat", 0));
         menuFile->setTitle(QApplication::translate("MainWindowClass", "File", 0));
         menuTool->setTitle(QApplication::translate("MainWindowClass", "Kinematics", 0));
         menuMode->setTitle(QApplication::translate("MainWindowClass", "Mode", 0));

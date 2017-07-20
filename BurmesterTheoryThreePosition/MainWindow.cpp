@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionPaste, SIGNAL(triggered()), this, SLOT(onPaste()));
 	connect(ui.actionDelete, SIGNAL(triggered()), this, SLOT(onDelete()));
 	connect(ui.actionSelectAll, SIGNAL(triggered()), this, SLOT(onSelectAll()));
+	connect(ui.actionCircularRepeat, SIGNAL(triggered()), this, SLOT(onCircularRepeat()));
 	connect(ui.actionMove, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionRectangle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionCircle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
@@ -99,6 +100,10 @@ void MainWindow::onSelectAll() {
 	canvas->selectAll();
 }
 
+void MainWindow::onCircularRepeat() {
+	canvas->circularRepeat(8);
+}
+
 void MainWindow::onModeChanged() {
 	if (ui.actionMove->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_MOVE);
@@ -161,6 +166,10 @@ void MainWindow::onStepBackward() {
 	canvas->stepBackward();
 }
 
+void MainWindow::onCollisionCheck() {
+	canvas->collision_check = ui.actionCollisionCheck->isChecked();
+}
+
 void MainWindow::keyPressEvent(QKeyEvent* e) {
 	canvas->keyPressEvent(e);
 }
@@ -169,6 +178,3 @@ void MainWindow::keyReleaseEvent(QKeyEvent* e) {
 	canvas->keyReleaseEvent(e);
 }
 
-void MainWindow::onCollisionCheck() {
-	canvas->collision_check = ui.actionCollisionCheck->isChecked();
-}

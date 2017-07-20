@@ -81,6 +81,8 @@
     <addaction name="separator"/>
     <addaction name="actionDelete"/>
     <addaction name="actionSelectAll"/>
+    <addaction name="separator"/>
+    <addaction name="actionCircularRepeat"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -317,6 +319,16 @@
    </property>
    <property name="text">
     <string>Linkage Avoidance</string>
+   </property>
+  </action>
+  <action name="actionTest">
+   <property name="text">
+    <string>Test</string>
+   </property>
+  </action>
+  <action name="actionCircularRepeat">
+   <property name="text">
+    <string>Circular Repeat</string>
    </property>
   </action>
  </widget>

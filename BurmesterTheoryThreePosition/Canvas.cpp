@@ -107,6 +107,70 @@ namespace canvas {
 		update();
 	}
 
+	/**
+	 *
+	 */
+	void Canvas::circularRepeat(int num_repeat) {
+		int N = layers[0].shapes.size();
+		for (int i = 0; i < N; i++) {
+			if (layers[0].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+				glm::dmat3x3 mat0 = layers[0].shapes[i]->getModelMatrix();
+
+				bool moved = false;
+				for (int j = 0; j < layers.size(); j++) {
+					glm::dmat3x3 mat = layers[j].shapes[i]->getModelMatrix();
+					if (mat != mat0) {
+						moved = true;
+						break;
+					}
+				}
+
+				if (!moved) continue;
+			}
+
+			if (layers[0].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+				for (int j = 0; j < layers.size(); j++) {
+					for (int k = 1; k < num_repeat; k++) {
+						double theta = (double)k / num_repeat * 2 * 3.1415926535;
+
+						// copy the shape
+						boost::shared_ptr<Shape> shape = layers[j].shapes[i]->clone();
+
+						// calculate the bounding box
+						BoundingBox bbox = shape->boundingBox();
+
+						// transform the shape
+						glm::dvec2 offset = shape->worldCoordinate(bbox.center());
+						shape->translate(-offset);
+						shape->rotate(theta);
+						shape->translate(glm::dvec2(offset.x * cos(theta) - offset.y * sin(theta), offset.x * sin(theta) + offset.y * cos(theta)));
+
+						layers[j].shapes.push_back(shape);
+					}
+				}
+			}
+			else if (layers[0].shapes[i]->getSubType() == Shape::TYPE_LINKAGE_REGION) {
+				for (int k = 1; k < num_repeat; k++) {
+					double theta = (double)k / num_repeat * 2 * 3.1415926535;
+
+					// copy the shape
+					boost::shared_ptr<Shape> shape = layers[0].shapes[i]->clone();
+
+					// calculate the bounding box
+					BoundingBox bbox = shape->boundingBox();
+
+					// transform the shape
+					glm::dvec2 offset = shape->worldCoordinate(bbox.center());
+					shape->translate(-offset);
+					shape->rotate(theta);
+					shape->translate(glm::dvec2(offset.x * cos(theta) - offset.y * sin(theta), offset.x * sin(theta) + offset.y * cos(theta)));
+
+					layers[0].shapes.push_back(shape);
+				}
+			}
+		}
+	}
+
 	void Canvas::setMode(int mode) {
 		if (this->mode != mode) {
 			this->mode = mode;

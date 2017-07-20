@@ -26,6 +26,7 @@ public slots:
 	void onPaste();
 	void onDelete();
 	void onSelectAll();
+	void onCircularRepeat();
 	void onModeChanged();
 	void onLayerChanged();
 	void onCalculateSolutions();
