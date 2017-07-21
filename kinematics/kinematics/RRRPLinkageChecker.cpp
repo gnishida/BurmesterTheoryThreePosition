@@ -76,6 +76,7 @@ namespace kinematics {
 			double l2 = glm::length(v2);
 			v2 /= l2;
 
+			// check the order of A1, A2, and A3, and the collinearity of A1, A2, and A3
 			if (glm::dot(v1, v2) > 0 && l2 > l1 &&  abs(crossProduct(v1, v2)) < 0.01) {
 				for (int i = 0; i < 100; i++) {
 					glm::dvec2 A0 = A1 + v1 * (double)(i - 50);
