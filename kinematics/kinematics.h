@@ -9,5 +9,6 @@
 #include "kinematics/Link.h"
 #include "kinematics/BodyGeometry.h"
 #include "kinematics/KinematicUtils.h"
-#include "kinematics/BurmesterThreePosition.h"
 #include "kinematics/BBox.h"
+#include "kinematics/RRRRLinkageChecker.h"
+#include "kinematics/RRRPLinkageChecker.h"

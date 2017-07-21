@@ -43,7 +43,7 @@ public:
     QAction *actionSave;
     QAction *actionKinematics;
     QAction *actionLayer3;
-    QAction *actionCalculateSolutions;
+    QAction *actionCalculateSolution4RLinkage;
     QAction *actionCollisionCheck;
     QAction *actionUndo;
     QAction *actionRedo;
@@ -58,6 +58,7 @@ public:
     QAction *actionLinkageAvoidance;
     QAction *actionTest;
     QAction *actionCircularRepeat;
+    QAction *actionCalculateSolutionSliderCrank;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -116,8 +117,8 @@ public:
         actionLayer3 = new QAction(MainWindowClass);
         actionLayer3->setObjectName(QStringLiteral("actionLayer3"));
         actionLayer3->setCheckable(true);
-        actionCalculateSolutions = new QAction(MainWindowClass);
-        actionCalculateSolutions->setObjectName(QStringLiteral("actionCalculateSolutions"));
+        actionCalculateSolution4RLinkage = new QAction(MainWindowClass);
+        actionCalculateSolution4RLinkage->setObjectName(QStringLiteral("actionCalculateSolution4RLinkage"));
         actionCollisionCheck = new QAction(MainWindowClass);
         actionCollisionCheck->setObjectName(QStringLiteral("actionCollisionCheck"));
         actionCollisionCheck->setCheckable(true);
@@ -150,6 +151,8 @@ public:
         actionTest->setObjectName(QStringLiteral("actionTest"));
         actionCircularRepeat = new QAction(MainWindowClass);
         actionCircularRepeat->setObjectName(QStringLiteral("actionCircularRepeat"));
+        actionCalculateSolutionSliderCrank = new QAction(MainWindowClass);
+        actionCalculateSolutionSliderCrank->setObjectName(QStringLiteral("actionCalculateSolutionSliderCrank"));
         centralWidget = new QWidget(MainWindowClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         MainWindowClass->setCentralWidget(centralWidget);
@@ -184,7 +187,8 @@ public:
         menuFile->addAction(actionSave);
         menuFile->addSeparator();
         menuFile->addAction(actionExit);
-        menuTool->addAction(actionCalculateSolutions);
+        menuTool->addAction(actionCalculateSolution4RLinkage);
+        menuTool->addAction(actionCalculateSolutionSliderCrank);
         menuTool->addSeparator();
         menuTool->addAction(actionRun);
         menuTool->addAction(actionRunBackward);
@@ -246,7 +250,7 @@ public:
         actionSave->setShortcut(QApplication::translate("MainWindowClass", "Ctrl+S", 0));
         actionKinematics->setText(QApplication::translate("MainWindowClass", "Kinematics", 0));
         actionLayer3->setText(QApplication::translate("MainWindowClass", "Layer 3", 0));
-        actionCalculateSolutions->setText(QApplication::translate("MainWindowClass", "Calculate Solutions", 0));
+        actionCalculateSolution4RLinkage->setText(QApplication::translate("MainWindowClass", "Calculate Solution for 4R Linkage", 0));
         actionCollisionCheck->setText(QApplication::translate("MainWindowClass", "Collision Check", 0));
         actionUndo->setText(QApplication::translate("MainWindowClass", "Undo", 0));
         actionUndo->setShortcut(QApplication::translate("MainWindowClass", "Ctrl+Z", 0));
@@ -267,6 +271,7 @@ public:
         actionLinkageAvoidance->setText(QApplication::translate("MainWindowClass", "Linkage Avoidance", 0));
         actionTest->setText(QApplication::translate("MainWindowClass", "Test", 0));
         actionCircularRepeat->setText(QApplication::translate("MainWindowClass", "Circular Repeat", 0));
+        actionCalculateSolutionSliderCrank->setText(QApplication::translate("MainWindowClass", "Calculate Solutions for Slider Crank", 0));
         menuFile->setTitle(QApplication::translate("MainWindowClass", "File", 0));
         menuTool->setTitle(QApplication::translate("MainWindowClass", "Kinematics", 0));
         menuMode->setTitle(QApplication::translate("MainWindowClass", "Mode", 0));

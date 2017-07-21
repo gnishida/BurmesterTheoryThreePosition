@@ -1,24 +1,25 @@
-#include "BurmesterThreePosition.h"
+#include "RRRRLinkageChecker.h"
 #include "KinematicUtils.h"
 #include "Kinematics.h"
 #include "PinJoint.h"
+#include "SliderHinge.h"
 #include "BoundingBox.h"
 
 namespace kinematics {
 
 	/**
-	 * Calculate solutions of 4R linkage given three poses.
-	 *
-	 * @param poses			three poses
-	 * @param solutions1	the output solutions for the world coordinates of the driving crank at the first pose, each of which contains a pair of the center point and the circle point
-	 * @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
-	 */
+	* Calculate solutions of 4R linkage given three poses.
+	*
+	* @param poses			three poses
+	* @param solutions1	the output solutions for the world coordinates of the driving crank at the first pose, each of which contains a pair of the center point and the circle point
+	* @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
+	*/
 	void calculateSolutionOf4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
 		solutions1.clear();
 		solutions2.clear();
 
 		srand(0);
-		
+
 		// convert the coordinates of the valid regions to the local coordinate system of the first pose
 		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
 		std::vector<glm::dvec2> valid_region(linkage_region_pts.size());
@@ -36,7 +37,7 @@ namespace kinematics {
 
 			// if the sampled point is outside the valid region, discard it.
 			if (!withinPolygon(valid_region, a)) continue;
-			
+
 			glm::dvec2 A1(poses[0] * glm::dvec3(a, 1));
 			glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
 			glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
@@ -68,12 +69,12 @@ namespace kinematics {
 				if (glm::length(solutions1[i].second - solutions2[j].second) < min_link_length) continue;
 
 				if (avoidGrashofDefect && checkGrashofDefect(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
-				if (avoidBranchDefect && checkBranchDefect(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
-				if (checkCircuitDefect(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (avoidBranchDefect && checkBranchDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (checkCircuitDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 
 				// collision check
-				if (checkCollision(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second, fixed_body_pts, body_pts)) continue;
-				
+				if (checkCollisionFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second, fixed_body_pts, body_pts)) continue;
+
 				ans[0] = solutions1[i].first;
 				ans[1] = solutions2[j].first;
 				ans[2] = solutions1[i].second;
@@ -101,59 +102,6 @@ namespace kinematics {
 	}
 
 	/**
-	* Calculate solutions of RRRP linkage given three poses.
-	*
-	* @param poses			three poses
-	* @param solutions1	the output solutions for the driving crank, each of which contains a pair of the center point and the circle point
-	* @param solutions2	the output solutions for the follower, each of which contains a pair of the fixed point and the slider point
-	*/
-	void calculateSolutionOfRRRPLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
-		solutions1.clear();
-		solutions2.clear();
-
-		// calculate the solutions for the driving crank
-		int cnt = 0;
-		for (int iter = 0; iter < 100000 && cnt < 10000; iter++) {
-			glm::dvec2 a(genRand(-10, 40), genRand(-20, 25));
-			glm::dvec2 A1(poses[0] * glm::dvec3(a, 1));
-			glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
-			glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
-
-			try {
-				glm::dvec2 A0 = circleCenterFromThreePoints(A1, A2, A3);
-				solutions1.push_back(std::make_pair(A0, a));
-				cnt++;
-			}
-			catch (char* ex) {
-			}
-		}
-
-		// calculate the solutions for the follower
-		cnt = 0;
-		for (int iter = 0; iter < 1000000 && cnt < 10000; iter++) {
-			glm::dvec2 a(genRand(-20, 60), genRand(-40, 50));
-			glm::dvec2 A1(poses[0] * glm::dvec3(a, 1));
-			glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
-			glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
-
-			glm::dvec2 v1 = A2 - A1;
-			v1 /= glm::length(v1);
-			glm::dvec2 v2 = A3 - A1;
-			v2 /= glm::length(v2);
-
-			if (abs(crossProduct(v1, v2)) < 0.01) {
-					std::cout << v1.x << ", " << v1.y << std::endl;
-				for (int i = 0; i < 100; i++) {
-					glm::dvec2 A0 = A1 + v1 * (double)(i - 50);
-					solutions2.push_back(std::make_pair(A0, a));
-				}
-
-				cnt += 100;
-			}
-		}
-	}
-
-	/**
 	* Return the Grashof type.
 	*
 	* 0 -- Grashof (Drag-link)
@@ -166,7 +114,7 @@ namespace kinematics {
 	* 7 -- Non-Grashof (0-pi Rocker)
 	*/
 	int getGrashofType(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
-		double g = glm::length(p0 -p1);
+		double g = glm::length(p0 - p1);
 		double a = glm::length(p0 - p2);
 		double b = glm::length(p1 - p3);
 		double h = glm::length(p2 - p3);
@@ -268,7 +216,7 @@ namespace kinematics {
 	/**
 	* Check if all the poses are in the same branch.
 	* Drag-link and crank-rocker always do not have a branch defect.
-	* For other types of linkage, the change in the sign of the angle between the coupler and the follower indicates the change of the branch. 
+	* For other types of linkage, the change in the sign of the angle between the coupler and the follower indicates the change of the branch.
 	* If there is an branch defect, true is returned. Otherwise, false is returned.
 	*
 	* @param poses	pose matrices
@@ -278,7 +226,7 @@ namespace kinematics {
 	* @param p3		the world coordinates of the moving point of the follower at the first pose
 	* @return		true if the branch defect is detected, false otherwise
 	*/
-	bool checkBranchDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+	bool checkBranchDefectFor4RLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
 		int type = getGrashofType(p0, p1, p2, p3);
 
 		// drag-link and crank-rocker always do not have a branch defect
@@ -299,15 +247,16 @@ namespace kinematics {
 			if (i == 0) {
 				orig_sign = crossProduct(X2 - p1, X1 - X2) >= 0 ? 1 : -1;
 			}
-
-			int sign = crossProduct(X2 - p1, X1 - X2) >= 0 ? 1 : -1;
-			if (sign != orig_sign) return true;
+			else {
+				int sign = crossProduct(X2 - p1, X1 - X2) >= 0 ? 1 : -1;
+				if (sign != orig_sign) return true;
+			}
 		}
 
 		return false;
 	}
 
-	bool checkCircuitDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+	bool checkCircuitDefectFor4RLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
 		int type = getGrashofType(p0, p1, p2, p3);
 
 		// Non-grashof type does not have a circuit defect
@@ -334,30 +283,31 @@ namespace kinematics {
 				orig_sign2 = crossProduct(X1 - p0, X2 - X1) >= 0 ? 1 : -1;
 				orig_sign3 = crossProduct(X2 - X1, p1 - X2) >= 0 ? 1 : -1;
 			}
+			else {
+				int sign0 = crossProduct(p0 - p1, X1 - p0) >= 0 ? 1 : -1;
+				int sign1 = crossProduct(p1 - X2, p0 - p1) >= 0 ? 1 : -1;
+				int sign2 = crossProduct(X1 - p0, X2 - X1) >= 0 ? 1 : -1;
+				int sign3 = crossProduct(X2 - X1, p1 - X2) >= 0 ? 1 : -1;
 
-			int sign0 = crossProduct(p0 - p1, X1 - p0) >= 0 ? 1 : -1;
-			int sign1 = crossProduct(p1 - X2, p0 - p1) >= 0 ? 1 : -1;
-			int sign2 = crossProduct(X1 - p0, X2 - X1) >= 0 ? 1 : -1;
-			int sign3 = crossProduct(X2 - X1, p1 - X2) >= 0 ? 1 : -1;
-
-			if (type == 0) {
-				if (sign2 != orig_sign2 || sign3 != orig_sign3) return true;
-			}
-			else if (type == 1) {
-				if (sign1 != orig_sign1 || sign3 != orig_sign3) return true;
-			}
-			else if (type == 2) {
-				if (sign0 != orig_sign0 || sign2 != orig_sign2) return true;
-			}
-			else if (type == 3) {
-				if (sign0 != orig_sign0 || sign1 != orig_sign1) return true;
+				if (type == 0) {
+					if (sign2 != orig_sign2 || sign3 != orig_sign3) return true;
+				}
+				else if (type == 1) {
+					if (sign1 != orig_sign1 || sign3 != orig_sign3) return true;
+				}
+				else if (type == 2) {
+					if (sign0 != orig_sign0 || sign2 != orig_sign2) return true;
+				}
+				else if (type == 3) {
+					if (sign0 != orig_sign0 || sign1 != orig_sign1) return true;
+				}
 			}
 		}
 
 		return false;
 	}
 
-	bool checkCollision(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
+	bool checkCollisionFor4RLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
 		kinematics::Kinematics kinematics(0.02);
 
 		// construct a linkage

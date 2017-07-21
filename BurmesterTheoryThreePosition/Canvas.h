@@ -21,6 +21,7 @@ namespace canvas {
 
 	public:
 		static enum { MODE_SELECT = 0, MODE_MOVE, MODE_ROTATION, MODE_RESIZE, MODE_RECTANGLE, MODE_CIRCLE, MODE_POLYGON, MODE_LINKAGE_REGION, MODE_LINKAGE_AVOIDANCE, MODE_KINEMATICS };
+		static enum { LINKAGE_4R = 0, LINKAGE_RRRP };
 
 	public:
 		MainWindow* mainWin;
@@ -50,8 +51,7 @@ namespace canvas {
 		std::vector<std::vector<glm::dvec2>> linkage_region_pts;
 		std::vector<std::vector<glm::dmat3x3>> poses;
 		int linkage_type;
-		bool grashofDefect;
-		bool orderDefect;
+		int linkage_subtype;
 		bool branchDefect;
 		bool circuitDefect;
 
@@ -87,8 +87,9 @@ namespace canvas {
 		glm::dvec2 screenToWorldCoordinates(double x, double y);
 		glm::dvec2 worldToScreenCoordinates(const glm::dvec2& p);
 
-		void calculateSolutions();
+		void calculateSolutions(int linkage_type);
 		int findSolution(const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions, const glm::dvec2& pt);
+		void updateDefectFlag();
 
 	public slots:
 		void animation_update();

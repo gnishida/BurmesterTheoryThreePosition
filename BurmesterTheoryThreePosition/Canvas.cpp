@@ -36,9 +36,8 @@ namespace canvas {
 
 		selectedJoint = std::make_pair(-1, -1);
 		//solutions.resize(2);
-		linkage_type = -1;
-		grashofDefect = false;
-		orderDefect = false;
+		linkage_type = LINKAGE_4R;
+		linkage_subtype = -1;
 		branchDefect = false;
 		circuitDefect = false;
 	}
@@ -353,7 +352,9 @@ namespace canvas {
 		return glm::dvec2(origin.x() + p.x * scale, origin.y() - p.y * scale);
 	}
 
-	void Canvas::calculateSolutions() {
+	void Canvas::calculateSolutions(int linkage_type) {
+		this->linkage_type = linkage_type;
+
 		// get the geometry of fixed rigid bodies, moving bodies, linkage regions
 		fixed_body_pts.clear();
 		body_pts.clear();
@@ -396,29 +397,53 @@ namespace canvas {
 		solutions.resize(body_pts.size(), std::vector<std::vector<std::pair<glm::dvec2, glm::dvec2>>>(2));
 		for (int i = 0; i < body_pts.size(); i++) {
 			// calculate the circle point curve and center point curve
-			kinematics::calculateSolutionOf4RLinkageForThreePoses(poses[i], linkage_region_pts[i], solutions[i][0], solutions[i][1]);
-			//kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses, solutions[0], solutions[1]);
+			if (linkage_type == LINKAGE_4R) {
+				kinematics::calculateSolutionOf4RLinkageForThreePoses(poses[i], linkage_region_pts[i], solutions[i][0], solutions[i][1]);
+			}
+			else if (linkage_type == LINKAGE_RRRP) {
+				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], solutions[i][0], solutions[i][1]);
+			}
 
 			std::cout << solutions[i][0].size() << " solutions were initially selected." << std::endl;
 
-			std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], true, true, 1.0);
+			if (linkage_type == LINKAGE_4R) {
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], true, true, 1.0);
 
-			// construct a linkage
-			kinematics::Kinematics kin;
-			kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution[0])));
-			kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution[1])));
-			kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution[2])));
-			kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, solution[3])));
-			kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
-			kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
-			kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
-			
+				// construct a linkage
+				kinematics::Kinematics kin;
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution[1])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution[2])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, solution[3])));
+				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
+				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
+				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
 
-			// update the geometry
-			kin.diagram.bodies.clear();
-			kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
+				// update the geometry
+				kin.diagram.bodies.clear();
+				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
 
-			kinematics.push_back(kin);
+				kinematics.push_back(kin);
+			}
+			else if (linkage_type == LINKAGE_RRRP) {
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], true, 1.0);
+
+				// construct a linkage
+				kinematics::Kinematics kin;
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution[1])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution[2])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::SliderHinge>(new kinematics::SliderHinge(3, false, solution[3])));
+				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
+				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
+				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
+
+				// update the geometry
+				kin.diagram.bodies.clear();
+				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
+
+				kinematics.push_back(kin);
+			}
 		}
 
 		// add the fixed rigid bodies to the fixed joints of all the linkages
@@ -449,6 +474,21 @@ namespace canvas {
 		}
 
 		return ans;
+	}
+
+	void Canvas::updateDefectFlag() {
+		int linkage_id = selectedJoint.first;
+
+		if (linkage_type == LINKAGE_4R) {
+			linkage_subtype = kinematics::getGrashofType(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+			branchDefect = kinematics::checkBranchDefectFor4RLinkage(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+			circuitDefect = kinematics::checkCircuitDefectFor4RLinkage(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+		}
+		else if (linkage_type == LINKAGE_RRRP) {
+			linkage_subtype = kinematics::getRRRPType(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+			branchDefect = kinematics::checkBranchDefectForRRRPLinkage(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+			circuitDefect = kinematics::checkCircuitDefectForRRRPLinkage(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+		}
 	}
 
 	void Canvas::animation_update() {
@@ -535,44 +575,55 @@ namespace canvas {
 			}
 
 			painter.setPen(QPen(QColor(0, 0, 0)));
-			if (linkage_type >= 0) {
-				if (linkage_type == 0) {
+			if (linkage_type == LINKAGE_4R) {
+				if (linkage_subtype == 0) {
 					painter.drawText(QPoint(6, 20), "Grashof (Drag-link)");
 				}
-				else if (linkage_type == 1) {
+				else if (linkage_subtype == 1) {
 					painter.drawText(QPoint(6, 20), "Grashof (Crank-rocker)");
 				}
-				else if (linkage_type == 2) {
+				else if (linkage_subtype == 2) {
 					painter.drawText(QPoint(6, 20), "Grashof (Rocker-crank)");
 				}
-				else if (linkage_type == 3) {
+				else if (linkage_subtype == 3) {
 					painter.drawText(QPoint(6, 20), "Grashof (Double-rocker)");
 				}
-				else if (linkage_type == 4) {
+				else if (linkage_subtype == 4) {
 					painter.drawText(QPoint(6, 20), "Non-Grashof (0-0 rocker)");
 				}
-				else if (linkage_type == 5) {
+				else if (linkage_subtype == 5) {
 					painter.drawText(QPoint(6, 20), "Non-Grashof (pi-pi rocker)");
 				}
-				else if (linkage_type == 6) {
+				else if (linkage_subtype == 6) {
 					painter.drawText(QPoint(6, 20), "Non-Grashof (pi-0 rocker)");
 				}
-				else if (linkage_type == 7) {
+				else if (linkage_subtype == 7) {
 					painter.drawText(QPoint(6, 20), "Non-Grashof (0-pi rocker)");
 				}
 			}
+			else if (linkage_type == LINKAGE_RRRP) {
+				if (linkage_subtype == 0) {
+					painter.drawText(QPoint(6, 20), "Rotatable crank");
+				}
+				else if (linkage_subtype == 1) {
+					painter.drawText(QPoint(6, 20), "0-rocker");
+				}
+				else if (linkage_subtype == 2) {
+					painter.drawText(QPoint(6, 20), "Pi-rocker");
+				}
+				else if (linkage_subtype == 3) {
+					painter.drawText(QPoint(6, 20), "Rocker");
+				}
+			}
 			painter.setPen(QPen(QColor(255, 0, 0)));
-			if (grashofDefect) {
+			if ((linkage_type == LINKAGE_4R && linkage_subtype >= 2) || (linkage_type == LINKAGE_RRRP && linkage_subtype >= 1)) {
 				painter.drawText(QPoint(6, 36), "Grashof defect");
 			}
-			if (orderDefect) {
-				painter.drawText(QPoint(6, 52), "Order defect");
-			}
 			if (branchDefect) {
-				painter.drawText(QPoint(6, 68), "Branch defect");
+				painter.drawText(QPoint(6, 52), "Branch defect");
 			}
 			if (circuitDefect) {
-				painter.drawText(QPoint(6, 84), "Circuit defect");
+				painter.drawText(QPoint(6, 68), "Circuit defect");
 			}
 		}
 
@@ -847,37 +898,41 @@ namespace canvas {
 						}
 						update();
 
-						linkage_type = kinematics::getGrashofType(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						grashofDefect = kinematics::checkGrashofDefect(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						orderDefect = kinematics::checkOrderDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						branchDefect = kinematics::checkBranchDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						circuitDefect = kinematics::checkCircuitDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+						updateDefectFlag();
 					}
 					else {
 						// select a solution
 						glm::dvec2 pt = screenToWorldCoordinates(e->x(), e->y());
 						int selectedSolution = findSolution(solutions[linkage_id][joint_id], pt);
 
-						// move the selected joint (center point)
-						kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution].first;
+						if (selectedSolution >= 0) {
+							// move the selected joint (center point)
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution].first;
 
-						// move the other end joint (circle point)
-						kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution].second;
+							// move the other end joint (circle point)
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution].second;
+						}
 
 						// initialize the other link
 						joint_id = 1 - joint_id;
 						int selectedSolution2 = findSolution(solutions[linkage_id][joint_id], kinematics[linkage_id].diagram.joints[joint_id]->pos);
-						kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution2].first;
-						kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution2].second;
+						if (selectedSolution2 >= 0) {
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution2].first;
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution2].second;
+						}
 
 						// initialize the other linkages
 						for (int i = 0; i < kinematics.size(); i++) {
 							if (i == linkage_id) continue;
 
 							int selectedSolution = findSolution(solutions[i][0], kinematics[i].diagram.joints[0]->pos);
-							kinematics[i].diagram.joints[2]->pos = solutions[i][0][selectedSolution].second;
+							if (selectedSolution >= 0) {
+								kinematics[i].diagram.joints[2]->pos = solutions[i][0][selectedSolution].second;
+							}
 							int selectedSolution2 = findSolution(solutions[i][1], kinematics[i].diagram.joints[1]->pos);
-							kinematics[i].diagram.joints[3]->pos = solutions[i][1][selectedSolution2].second;
+							if (selectedSolution2 >= 0) {
+								kinematics[i].diagram.joints[3]->pos = solutions[i][1][selectedSolution2].second;
+							}
 						}
 
 						// update the geometry
@@ -897,11 +952,7 @@ namespace canvas {
 						}
 						update();
 
-						linkage_type = kinematics::getGrashofType(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						grashofDefect = kinematics::checkGrashofDefect(kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						orderDefect = kinematics::checkOrderDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						branchDefect = kinematics::checkBranchDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
-						circuitDefect = kinematics::checkCircuitDefect(poses[linkage_id], kinematics[linkage_id].diagram.joints[0]->pos, kinematics[linkage_id].diagram.joints[1]->pos, kinematics[linkage_id].diagram.joints[2]->pos, kinematics[linkage_id].diagram.joints[3]->pos);
+						updateDefectFlag();
 					}
 				}
 			}

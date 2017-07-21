@@ -37,7 +37,8 @@
     <property name="title">
      <string>Kinematics</string>
     </property>
-    <addaction name="actionCalculateSolutions"/>
+    <addaction name="actionCalculateSolution4RLinkage"/>
+    <addaction name="actionCalculateSolutionSliderCrank"/>
     <addaction name="separator"/>
     <addaction name="actionRun"/>
     <addaction name="actionRunBackward"/>
@@ -226,9 +227,9 @@
     <string>Layer 3</string>
    </property>
   </action>
-  <action name="actionCalculateSolutions">
+  <action name="actionCalculateSolution4RLinkage">
    <property name="text">
-    <string>Calculate Solutions</string>
+    <string>Calculate Solution for 4R Linkage</string>
    </property>
   </action>
   <action name="actionCollisionCheck">
@@ -329,6 +330,11 @@
   <action name="actionCircularRepeat">
    <property name="text">
     <string>Circular Repeat</string>
+   </property>
+  </action>
+  <action name="actionCalculateSolutionSliderCrank">
+   <property name="text">
+    <string>Calculate Solutions for Slider Crank</string>
    </property>
   </action>
  </widget>

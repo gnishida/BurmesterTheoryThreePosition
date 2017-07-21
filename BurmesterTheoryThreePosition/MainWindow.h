@@ -29,7 +29,8 @@ public slots:
 	void onCircularRepeat();
 	void onModeChanged();
 	void onLayerChanged();
-	void onCalculateSolutions();
+	void onCalculateSolution4RLinkage();
+	void onCalculateSolutionSliderCrank();
 	void onRun();
 	void onRunBackward();
 	void onStop();

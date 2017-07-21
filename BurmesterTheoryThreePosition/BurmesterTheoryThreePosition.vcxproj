@@ -139,7 +139,6 @@
   <ItemGroup>
     <ClCompile Include="..\kinematics\kinematics\BodyGeometry.cpp" />
     <ClCompile Include="..\kinematics\kinematics\BBox.cpp" />
-    <ClCompile Include="..\kinematics\kinematics\BurmesterThreePosition.cpp" />
     <ClCompile Include="..\kinematics\kinematics\Gear.cpp" />
     <ClCompile Include="..\kinematics\kinematics\Joint.cpp" />
     <ClCompile Include="..\kinematics\kinematics\KinematicDiagram.cpp" />
@@ -147,6 +146,8 @@
     <ClCompile Include="..\kinematics\kinematics\KinematicUtils.cpp" />
     <ClCompile Include="..\kinematics\kinematics\Link.cpp" />
     <ClCompile Include="..\kinematics\kinematics\PinJoint.cpp" />
+    <ClCompile Include="..\kinematics\kinematics\RRRPLinkageChecker.cpp" />
+    <ClCompile Include="..\kinematics\kinematics\RRRRLinkageChecker.cpp" />
     <ClCompile Include="..\kinematics\kinematics\SliderHinge.cpp" />
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="Canvas.cpp" />
@@ -232,7 +233,6 @@
     <ClInclude Include="..\kinematics\kinematics.h" />
     <ClInclude Include="..\kinematics\kinematics\BodyGeometry.h" />
     <ClInclude Include="..\kinematics\kinematics\BBox.h" />
-    <ClInclude Include="..\kinematics\kinematics\BurmesterThreePosition.h" />
     <ClInclude Include="..\kinematics\kinematics\Gear.h" />
     <ClInclude Include="..\kinematics\kinematics\Joint.h" />
     <ClInclude Include="..\kinematics\kinematics\KinematicDiagram.h" />
@@ -240,6 +240,8 @@
     <ClInclude Include="..\kinematics\kinematics\KinematicUtils.h" />
     <ClInclude Include="..\kinematics\kinematics\Link.h" />
     <ClInclude Include="..\kinematics\kinematics\PinJoint.h" />
+    <ClInclude Include="..\kinematics\kinematics\RRRPLinkageChecker.h" />
+    <ClInclude Include="..\kinematics\kinematics\RRRRLinkageChecker.h" />
     <ClInclude Include="..\kinematics\kinematics\SliderHinge.h" />
     <ClInclude Include="BoundingBox.h" />
     <ClInclude Include="Circle.h" />

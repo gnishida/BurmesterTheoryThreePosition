@@ -44,7 +44,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionLayer1, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
 	connect(ui.actionLayer2, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
 	connect(ui.actionLayer3, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
-	connect(ui.actionCalculateSolutions, SIGNAL(triggered()), this, SLOT(onCalculateSolutions()));
+	connect(ui.actionCalculateSolution4RLinkage, SIGNAL(triggered()), this, SLOT(onCalculateSolution4RLinkage()));
+	connect(ui.actionCalculateSolutionSliderCrank, SIGNAL(triggered()), this, SLOT(onCalculateSolutionSliderCrank()));
 	connect(ui.actionRun, SIGNAL(triggered()), this, SLOT(onRun()));
 	connect(ui.actionRunBackward, SIGNAL(triggered()), this, SLOT(onRunBackward()));
 	connect(ui.actionStop, SIGNAL(triggered()), this, SLOT(onStop()));
@@ -141,8 +142,12 @@ void MainWindow::onLayerChanged() {
 	}
 }
 
-void MainWindow::onCalculateSolutions() {
-	canvas->calculateSolutions();
+void MainWindow::onCalculateSolution4RLinkage() {
+	canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R);
+}
+
+void MainWindow::onCalculateSolutionSliderCrank() {
+	canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP);
 }
 
 void MainWindow::onRun() {

@@ -27,14 +27,14 @@ namespace kinematics {
 		double theta = 0.0;
 		if (links.size() > 0) {
 			for (int i = 0; i < links[0]->joints.size(); ++i) {
-				if (links[0]->joints[i]->id != id) {
+				if (links[0]->joints[i]->id != id && links[0]->joints[i]->ground) {
 					theta = atan2(links[0]->joints[i]->pos.y - pos.y, links[0]->joints[i]->pos.x - pos.x);
 				}
 			}
 		}
 
 		painter.translate(origin.x() + pos.x * scale, origin.y() - pos.y * scale);
-		painter.rotate(-theta);
+		painter.rotate(-theta / M_PI * 180);
 		painter.drawRect(-20, -5, 40, 10);
 
 		painter.drawEllipse(QPoint(0, 0), 5, 5);
