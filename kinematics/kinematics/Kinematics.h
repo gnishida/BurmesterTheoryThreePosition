@@ -25,7 +25,7 @@ namespace kinematics {
 		bool show_bodies;
 
 	public:
-		Kinematics(double simulation_speed = 0.01);
+		Kinematics(double simulation_speed = 0.02);
 
 		void clear();
 		void load(const QString& filename);

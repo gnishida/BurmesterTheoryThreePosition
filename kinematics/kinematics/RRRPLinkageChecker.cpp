@@ -96,7 +96,7 @@ namespace kinematics {
 	std::vector<glm::dvec2> findBestSolutionOfRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool avoidBranchDefect, double min_link_length) {
 		time_t start = clock();
 
-		std::vector<glm::dvec2> ans(4);
+		std::vector<std::vector<glm::dvec2>> candidates;
 
 		for (int i = 0; i < solutions1.size(); i++) {
 			for (int j = 0; j < solutions2.size(); j++) {
@@ -110,28 +110,44 @@ namespace kinematics {
 				// collision check
 				if (checkCollisionForRRRPLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second, fixed_body_pts, body_pts)) continue;
 
-				ans[0] = solutions1[i].first;
-				ans[1] = solutions2[j].first;
-				ans[2] = solutions1[i].second;
-				ans[3] = solutions2[j].second;
-
-				time_t end = clock();
-				std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
-
-				return ans;
+				candidates.push_back({ solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second });
 			}
 		}
 
-		time_t end = clock();
-		std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
+		// select the best solution based on the trajectory
+		if (candidates.size() > 0) {
+			time_t end = clock();
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
+			start = clock();
 
-		std::cout << "No solution was found." << std::endl;
-		ans[0] = glm::dvec2(0, 0);
-		ans[1] = glm::dvec2(2, 0);
-		ans[2] = glm::dvec2(0, 2);
-		ans[3] = glm::dvec2(2, 2);
-		return ans;
+			double min_length = std::numeric_limits<double>::max();
+			int best = -1;
+			for (int i = 0; i < candidates.size(); i++) {
+				double length = lengthOfTrajectoryForRRRPLinkage(poses, candidates[i][0], candidates[i][1], candidates[i][2], candidates[i][3], body_pts);
+				if (length < min_length) {
+					min_length = length;
+					best = i;
+				}
+			}
 
+			end = clock();
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << candidates.size() << " candidates." << std::endl;
+			std::cout << best << " th candidate was selected." << std::endl;
+
+			return candidates[best];
+		}
+		else {
+			time_t end = clock();
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
+			std::cout << "No solution was found." << std::endl;
+
+			std::vector<glm::dvec2> ans(4);
+			ans[0] = glm::dvec2(0, 0);
+			ans[1] = glm::dvec2(2, 0);
+			ans[2] = glm::dvec2(0, 2);
+			ans[3] = glm::dvec2(2, 2);
+			return ans;
+		}
 	}
 
 	/**
@@ -342,6 +358,15 @@ namespace kinematics {
 
 		// run forward until collision is deteted or all the poses are reached
 		while (true) {
+			try {
+				kinematics.stepForward(true, false);
+			}
+			catch (char* ex) {
+				// if only some of the poses are reached before collision, the collision is detected.
+				kinematics.clear();
+				return true;
+			}
+
 			// calculate the angle of the driving crank
 			double angle = atan2(kinematics.diagram.joints[2]->pos.y - p0.y, kinematics.diagram.joints[2]->pos.x - p0.x);
 
@@ -394,19 +419,164 @@ namespace kinematics {
 				kinematics.clear();
 				return false;
 			}
+		}
 
+		kinematics.clear();
+		return false;
+	}
+
+	double lengthOfTrajectoryForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<glm::dvec2>& body_pts) {
+		kinematics::Kinematics kinematics(0.1);
+
+		// construct a linkage
+		kinematics.diagram.addJoint(boost::shared_ptr<PinJoint>(new PinJoint(0, true, p0)));
+		kinematics.diagram.addJoint(boost::shared_ptr<PinJoint>(new PinJoint(1, true, p1)));
+		kinematics.diagram.addJoint(boost::shared_ptr<PinJoint>(new PinJoint(2, false, p2)));
+		kinematics.diagram.addJoint(boost::shared_ptr<SliderHinge>(new SliderHinge(3, false, p3)));
+		kinematics.diagram.addLink(true, kinematics.diagram.joints[0], kinematics.diagram.joints[2]);
+		kinematics.diagram.addLink(false, kinematics.diagram.joints[1], kinematics.diagram.joints[3]);
+		kinematics.diagram.addLink(false, kinematics.diagram.joints[2], kinematics.diagram.joints[3]);
+
+		// set the geometry
+		kinematics.diagram.addBody(kinematics.diagram.joints[2], kinematics.diagram.joints[3], body_pts);
+
+		kinematics.diagram.initialize();
+
+		// initialize the trajectory of the moving body
+		std::vector<glm::dvec2> prev_body_pts = body_pts;
+		double length_of_trajectory = 0.0;
+
+		// calculate the rotational angle of the driving crank for each pose
+		std::vector<double> angles(poses.size());
+		glm::dvec2 w(glm::inverse(poses[0]) * glm::dvec3(p2, 1));
+		for (int i = 0; i < poses.size(); i++) {
+			glm::dvec2 W = glm::dvec2(poses[i] * glm::dvec3(w, 1));
+			angles[i] = atan2(W.y - p0.y, W.x - p0.x);
+		}
+
+		// order the angles based on their signs
+		int type = 0;
+		if (angles[0] < 0 && angles[1] < 0 && angles[2] >= 0 && angles[0] >= angles[1]) {
+			type = 1;
+			angles[2] -= M_PI * 2;
+		}
+		else if (angles[0] < 0 && angles[1] >= 0 && angles[2] < 0 && angles[0] < angles[2]) {
+			type = 2;
+			angles[1] -= M_PI * 2;
+			angles[2] -= M_PI * 2;
+		}
+		else if (angles[0] < 0 && angles[1] >= 0 && angles[2] < 0 && angles[0] >= angles[2]) {
+			type = 3;
+			angles[2] += M_PI * 2;
+		}
+		else if (angles[0] < 0 && angles[1] >= 0 && angles[2] >= 0 && angles[1] >= angles[2]) {
+			type = 4;
+			angles[1] -= M_PI * 2;
+			angles[2] -= M_PI * 2;
+		}
+		else if (angles[0] >= 0 && angles[1] < 0 && angles[2] < 0 && angles[1] < angles[2]) {
+			type = 5;
+			angles[1] += M_PI * 2;
+			angles[2] += M_PI * 2;
+		}
+		else if (angles[0] >= 0 && angles[1] < 0 && angles[2] >= 0 && angles[0] < angles[2]) {
+			type = 6;
+			angles[2] -= M_PI * 2;
+		}
+		else if (angles[0] >= 0 && angles[1] < 0 && angles[2] >= 0 && angles[0] >= angles[2]) {
+			type = 7;
+			angles[1] += M_PI * 2;
+			angles[2] += M_PI * 2;
+		}
+		else if (angles[0] >= 0 && angles[1] >= 0 && angles[2] < 0 && angles[0] < angles[1]) {
+			type = 8;
+			angles[2] += M_PI * 2;
+		}
+
+		if (angles[2] < angles[0]) {
+			kinematics.invertSpeed();
+		}
+
+		// initialize the visited flag
+		std::vector<bool> visited(poses.size(), false);
+		visited[0] = true;
+		int unvisited = poses.size() - 1;
+
+		// run forward until collision is deteted or all the poses are reached
+		while (true) {
 			try {
 				kinematics.stepForward(true, false);
 			}
 			catch (char* ex) {
 				// if only some of the poses are reached before collision, the collision is detected.
 				kinematics.clear();
-				return true;
+				return length_of_trajectory;
+			}
+
+			// calculate the angle of the driving crank
+			double angle = atan2(kinematics.diagram.joints[2]->pos.y - p0.y, kinematics.diagram.joints[2]->pos.x - p0.x);
+
+			// update the lengths of the trajectory of the moving body
+			std::vector<glm::dvec2> next_body_pts = kinematics.diagram.bodies[0]->getActualPoints();
+			for (int i = 0; i < next_body_pts.size(); i++) {
+				double length = glm::length(next_body_pts[i] - prev_body_pts[i]);
+				length_of_trajectory += length;
+				prev_body_pts[i] = next_body_pts[i];
+			}
+
+			// convert the sign of the angle
+			if (type == 1 && angle > 0) {
+				angle -= M_PI * 2;
+			}
+			else if (type == 2 && angle > angles[0]) {
+				angle -= M_PI * 2;
+			}
+			else if (type == 3 && angle < angles[0]) {
+				angle += M_PI * 2;
+			}
+			else if (type == 4 && angle > 0) {
+				angle -= M_PI * 2;
+			}
+			else if (type == 5 && angle < 0) {
+				angle += M_PI * 2;
+			}
+			else if (type == 6 && angle > angles[0]) {
+				angle -= M_PI * 2;
+			}
+			else if (type == 7 && angle < angles[0]) {
+				angle += M_PI * 2;
+			}
+			else if (type == 8 && angle < 0) {
+				angle += M_PI * 2;
+			}
+
+			// check if the poses are reached
+			for (int i = 0; i < angles.size(); i++) {
+				if (visited[i]) continue;
+
+				if (angles[2] >= angles[0]) {
+					if (angle >= angles[i]) {
+						visited[i] = true;
+						unvisited--;
+					}
+				}
+				else {
+					if (angle <= angles[i]) {
+						visited[i] = true;
+						unvisited--;
+					}
+				}
+			}
+
+			// if all the poses are reached without collision, no collision is detected.
+			if (unvisited == 0) {
+				kinematics.clear();
+				return length_of_trajectory;
 			}
 		}
 
 		kinematics.clear();
-		return false;
+		return length_of_trajectory;
 	}
 
 }
