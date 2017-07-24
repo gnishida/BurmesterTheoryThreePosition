@@ -31,7 +31,7 @@ namespace kinematics {
 		BBox bbox = boundingBox(valid_region);
 
 		int cnt = 0;
-		for (int iter = 0; iter < 1000000 && cnt < 1000; iter++) {
+		for (int iter = 0; iter < 10000000 && cnt < 1000; iter++) {
 			// sample a point within the valid region as the local coordinate of a circle point
 			glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
 
@@ -79,9 +79,6 @@ namespace kinematics {
 				ans[1] = solutions2[j].first;
 				ans[2] = solutions1[i].second;
 				ans[3] = solutions2[j].second;
-
-				std::cout << "g=" << glm::length(solutions1[i].first - solutions2[j].first) << std::endl;
-				std::cout << "h=" << glm::length(solutions1[i].second - solutions2[j].second) << std::endl;
 
 				time_t end = clock();
 				std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;

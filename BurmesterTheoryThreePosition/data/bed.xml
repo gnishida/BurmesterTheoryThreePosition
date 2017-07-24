@@ -1,40 +1,40 @@
-<design author="Gen Nishida" date="07/19/2017" version="1.0">
+<design version="1.0" date="07/24/2017" author="Gen Nishida">
     <layer>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="0" y="0" x="0"/>
-            <params height="5" width="30"/>
+            <params width="30" height="5"/>
         </shape>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="0" y="5" x="30.50000000000001"/>
-            <params height="-14" width="5"/>
+            <params width="5" height="-14"/>
         </shape>
-        <shape type="polygon" subtype="1">
-            <pose theta="0" y="10" x="15"/>
-            <point y="0" x="0"/>
-            <point y="0.1999999999999993" x="22.1"/>
-            <point y="-18.9" x="22"/>
-            <point y="-19" x="12.4"/>
-            <point y="-10.3" x="0.5999999999999996"/>
+        <shape subtype="1" type="polygon">
+            <pose theta="0" y="7.324498693774068" x="17.87175878989915"/>
+            <point y="-6.38378239159465e-016" x="1.318389841742373e-015"/>
+            <point y="0.1742681410100062" x="18.50234668186124"/>
+            <point y="-16.4683393254433" x="18.41862565615154"/>
+            <point y="-16.55547339594829" x="10.38140718801266"/>
+            <point y="-8.974809262014059" x="0.5023261542586979"/>
         </shape>
     </layer>
     <layer>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="0" y="0" x="0"/>
-            <params height="5" width="30"/>
+            <params width="30" height="5"/>
         </shape>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="0.1011965966177499" y="18.71162803965818" x="29.60562227385768"/>
-            <params height="-14" width="5"/>
+            <params width="5" height="-14"/>
         </shape>
     </layer>
     <layer>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="0" y="0" x="0"/>
-            <params height="5" width="30"/>
+            <params width="30" height="5"/>
         </shape>
-        <shape type="rectangle" subtype="0">
+        <shape subtype="0" type="rectangle">
             <pose theta="-4.708336317668167" y="5.471651968704812" x="16.01018911324163"/>
-            <params height="-14" width="5"/>
+            <params width="5" height="-14"/>
         </shape>
     </layer>
 </design>

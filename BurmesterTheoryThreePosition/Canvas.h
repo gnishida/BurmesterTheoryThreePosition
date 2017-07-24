@@ -89,7 +89,7 @@ namespace canvas {
 
 		void calculateSolutions(int linkage_type);
 		int findSolution(const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions, const glm::dvec2& pt);
-		void updateDefectFlag();
+		void updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics);
 
 	public slots:
 		void animation_update();
