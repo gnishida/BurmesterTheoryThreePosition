@@ -300,12 +300,17 @@ namespace kinematics {
 
 		kinematics.diagram.initialize();
 
-		// calculate the rotational angle of the driving crank for each pose
-		std::vector<double> angles(poses.size());
+		// calculate the rotational angle of the driving crank for 1st, 2nd, and last poses
+		// i.e., angles[0] = first pose, angles[1] = second pose, angles[2] = last pose
+		std::vector<double> angles(3);
 		glm::dvec2 w(glm::inverse(poses[0]) * glm::dvec3(p2, 1));
-		for (int i = 0; i < poses.size(); i++) {
+		for (int i = 0; i < 2; i++) {
 			glm::dvec2 W = glm::dvec2(poses[i] * glm::dvec3(w, 1));
 			angles[i] = atan2(W.y - p0.y, W.x - p0.x);
+		}
+		{
+			glm::dvec2 W = glm::dvec2(poses.back() * glm::dvec3(w, 1));
+			angles[2] = atan2(W.y - p0.y, W.x - p0.x);
 		}
 
 		// order the angles based on their signs
@@ -446,12 +451,17 @@ namespace kinematics {
 		std::vector<glm::dvec2> prev_body_pts = body_pts;
 		double length_of_trajectory = 0.0;
 
-		// calculate the rotational angle of the driving crank for each pose
-		std::vector<double> angles(poses.size());
+		// calculate the rotational angle of the driving crank for 1st, 2nd, and last poses
+		// i.e., angles[0] = first pose, angles[1] = second pose, angles[2] = last pose
+		std::vector<double> angles(3);
 		glm::dvec2 w(glm::inverse(poses[0]) * glm::dvec3(p2, 1));
-		for (int i = 0; i < poses.size(); i++) {
+		for (int i = 0; i < 2; i++) {
 			glm::dvec2 W = glm::dvec2(poses[i] * glm::dvec3(w, 1));
 			angles[i] = atan2(W.y - p0.y, W.x - p0.x);
+		}
+		{
+			glm::dvec2 W = glm::dvec2(poses.back() * glm::dvec3(w, 1));
+			angles[2] = atan2(W.y - p0.y, W.x - p0.x);
 		}
 
 		// order the angles based on their signs
