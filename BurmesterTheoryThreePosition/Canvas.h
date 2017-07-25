@@ -52,6 +52,7 @@ namespace canvas {
 		std::vector<std::vector<glm::dmat3x3>> poses;
 		int linkage_type;
 		int linkage_subtype;
+		bool orderDefect;
 		bool branchDefect;
 		bool circuitDefect;
 

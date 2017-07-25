@@ -72,6 +72,7 @@ namespace kinematics {
 				if (avoidGrashofDefect && checkGrashofDefect(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 				if (avoidBranchDefect && checkBranchDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 				if (checkCircuitDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (checkOrderDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 
 				// collision check
 				if (checkCollisionFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second, fixed_body_pts, body_pts)) continue;
@@ -204,15 +205,12 @@ namespace kinematics {
 	* If there is an order defect, true is returned.
 	* Otherwise, false is returned.
 	*/
-	bool checkOrderDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
-		int linkage_type = getGrashofType(p0, p1, p2, p3);
-
+	bool checkOrderDefectFor4RLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
 		glm::dvec2 inv_W = glm::dvec2(glm::inverse(poses[0]) * glm::dvec3(p2, 1));
 
 		double total_cw = 0;
 		double total_ccw = 0;
 		double prev = 0;
-		//int ccw = 1;
 		for (int i = 0; i < poses.size(); i++) {
 			// calculate the coordinates of the circle point of the driving crank in the world coordinate system
 			glm::dvec2 X = glm::dvec2(poses[i] * glm::dvec3(inv_W, 1));
@@ -238,7 +236,7 @@ namespace kinematics {
 			prev = theta;
 		}
 
-		if (total_cw > kinematics::M_PI * 2 + 0.1 && total_ccw > kinematics::M_PI * 2 + 0.1) return true;
+		if (total_cw > kinematics::M_PI * 2 && total_ccw > kinematics::M_PI * 2) return true;
 		else return false;
 	}
 

@@ -38,6 +38,7 @@ namespace canvas {
 		//solutions.resize(2);
 		linkage_type = LINKAGE_4R;
 		linkage_subtype = -1;
+		orderDefect = false;
 		branchDefect = false;
 		circuitDefect = false;
 	}
@@ -483,6 +484,7 @@ namespace canvas {
 
 		if (linkage_type == LINKAGE_4R) {
 			linkage_subtype = kinematics::getGrashofType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+			orderDefect = kinematics::checkOrderDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			branchDefect = kinematics::checkBranchDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			circuitDefect = kinematics::checkCircuitDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 		}
@@ -621,11 +623,14 @@ namespace canvas {
 			if ((linkage_type == LINKAGE_4R && linkage_subtype >= 2) || (linkage_type == LINKAGE_RRRP && linkage_subtype >= 1)) {
 				painter.drawText(QPoint(6, 36), "Grashof defect");
 			}
+			if (orderDefect) {
+				painter.drawText(QPoint(6, 52), "Order defect");
+			}
 			if (branchDefect) {
-				painter.drawText(QPoint(6, 52), "Branch defect");
+				painter.drawText(QPoint(6, 68), "Branch defect");
 			}
 			if (circuitDefect) {
-				painter.drawText(QPoint(6, 68), "Circuit defect");
+				painter.drawText(QPoint(6, 84), "Circuit defect");
 			}
 		}
 
