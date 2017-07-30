@@ -371,7 +371,7 @@ namespace canvas {
 		return glm::dvec2(origin.x() + p.x * scale, origin.y() - p.y * scale);
 	}
 
-	void Canvas::calculateSolutions(int linkage_type) {
+	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank) {
 		time_t start = clock();
 
 		this->linkage_type = linkage_type;
@@ -419,16 +419,16 @@ namespace canvas {
 		for (int i = 0; i < body_pts.size(); i++) {
 			// calculate the circle point curve and center point curve
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::calculateSolutionOf4RLinkageForThreePoses(poses[i], linkage_region_pts[i], solutions[i][0], solutions[i][1]);
+				kinematics::calculateSolutionOf4RLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], solutions[i][0], solutions[i][1]);
+				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
 			}
 
 			std::cout << solutions[i][0].size() << " solutions were initially selected." << std::endl;
 
 			if (linkage_type == LINKAGE_4R) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], true, true, 1.0);
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -447,7 +447,7 @@ namespace canvas {
 				kinematics.push_back(kin);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], true, 1.0);
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0);
 
 				// construct a linkage
 				kinematics::Kinematics kin;

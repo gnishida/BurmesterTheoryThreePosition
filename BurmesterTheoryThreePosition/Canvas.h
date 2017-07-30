@@ -89,7 +89,7 @@ namespace canvas {
 		glm::dvec2 screenToWorldCoordinates(double x, double y);
 		glm::dvec2 worldToScreenCoordinates(const glm::dvec2& p);
 
-		void calculateSolutions(int linkage_type);
+		void calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank);
 		int findSolution(const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions, const glm::dvec2& pt);
 		void updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics);
 

@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include <QFileDialog>
+#include "LinkageSynthesisOptionDialog.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	ui.setupUi(this);
@@ -17,17 +18,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	ui.actionMove->setChecked(true);
 	
 	groupLayer = new QActionGroup(this);
-	/*
-	menuLayers.push_back(ui.menuLayer->addAction("Layer 1"));
-	menuLayers.push_back(ui.menuLayer->addAction("Layer 2"));
-	menuLayers.push_back(ui.menuLayer->addAction("Layer 3"));
-	groupLayer = new QActionGroup(this);
-	for (int i = 0; i < menuLayers.size(); i++) {
-		menuLayers[i]->setCheckable(true);
-		groupLayer->addAction(menuLayers[i]);
-	}
-	menuLayers[0]->setChecked(true);
-	*/
 	initLayerMenu(3);
 
 	ui.actionCollisionCheck->setChecked(canvas->collision_check);
@@ -50,11 +40,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionLinkageRegion, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionKinematics, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionAddLayer, SIGNAL(triggered()), this, SLOT(onAddLayer()));
-	/*
-	for (int i = 0; i < menuLayers.size(); i++) {
-		connect(menuLayers[i], SIGNAL(triggered()), this, SLOT(onLayerChanged()));
-	}
-	*/
 	connect(ui.actionCalculateSolution4RLinkage, SIGNAL(triggered()), this, SLOT(onCalculateSolution4RLinkage()));
 	connect(ui.actionCalculateSolutionSliderCrank, SIGNAL(triggered()), this, SLOT(onCalculateSolutionSliderCrank()));
 	connect(ui.actionRun, SIGNAL(triggered()), this, SLOT(onRun()));
@@ -176,11 +161,23 @@ void MainWindow::onLayerChanged() {
 }
 
 void MainWindow::onCalculateSolution4RLinkage() {
-	canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R);
+	LinkageSynthesisOptionDialog dlg;
+	if (dlg.exec()) {
+		int num_samples = dlg.ui.lineEditNumSamples->text().toInt();
+		double sigma = dlg.ui.lineEditStdDev->text().toDouble();
+
+		canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R, num_samples, sigma, dlg.ui.checkBoxAvoidBranchDefect->isChecked(), dlg.ui.checkBoxRotatableCrank->isChecked());
+	}
 }
 
 void MainWindow::onCalculateSolutionSliderCrank() {
-	canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP);
+	LinkageSynthesisOptionDialog dlg;
+	if (dlg.exec()) {
+		int num_samples = dlg.ui.lineEditNumSamples->text().toInt();
+		double sigma = dlg.ui.lineEditStdDev->text().toDouble();
+
+		canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP, num_samples, sigma, dlg.ui.checkBoxAvoidBranchDefect->isChecked(), dlg.ui.checkBoxRotatableCrank->isChecked());
+	}
 }
 
 void MainWindow::onRun() {

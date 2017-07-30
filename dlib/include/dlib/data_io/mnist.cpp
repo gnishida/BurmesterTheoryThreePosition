@@ -8,6 +8,11 @@
 #include "../byte_orderer.h"
 #include "../uintn.h"
 
+// ----------------------------------------------------------------------------------------
+
+namespace dlib
+{
+    void load_mnist_dataset (
         const std::string& folder_name,
         std::vector<matrix<unsigned char> >& training_images,
         std::vector<unsigned long>& training_labels,

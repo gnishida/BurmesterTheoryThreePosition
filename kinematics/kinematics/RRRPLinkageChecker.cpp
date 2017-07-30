@@ -14,7 +14,7 @@ namespace kinematics {
 	* @param solutions1	the output solutions for the driving crank, each of which contains a pair of the center point and the circle point
 	* @param solutions2	the output solutions for the follower, each of which contains a pair of the fixed point and the slider point
 	*/
-	void calculateSolutionOfRRRPLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
+	void calculateSolutionOfRRRPLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, double sigma, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
 		solutions1.clear();
 		solutions2.clear();
 
@@ -32,7 +32,7 @@ namespace kinematics {
 
 		// calculate the solutions for the driving crank
 		int cnt = 0;
-		for (int iter = 0; iter < 1000000 && cnt < 1000; iter++) {
+		for (int iter = 0; iter < num_samples * 10000 && cnt < num_samples; iter++) {
 			// sample a point within the valid region as the local coordinate of a circle point
 			glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
 
@@ -58,7 +58,7 @@ namespace kinematics {
 
 		// calculate the solutions for the follower
 		cnt = 0;
-		for (int iter = 0; iter < 1000000 && cnt < 1000; iter++) {
+		for (int iter = 0; iter < num_samples * 10000 && cnt < num_samples; iter++) {
 			// sample a point within the valid region as the local coordinate of a circle point
 			glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
 
@@ -93,7 +93,7 @@ namespace kinematics {
 		}
 	}
 
-	std::vector<glm::dvec2> findBestSolutionOfRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool avoidBranchDefect, double min_link_length) {
+	std::vector<glm::dvec2> findBestSolutionOfRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool rotatable_crank, bool avoid_branch_defect, double min_link_length) {
 		time_t start = clock();
 
 		std::vector<std::vector<glm::dvec2>> candidates;
@@ -104,7 +104,8 @@ namespace kinematics {
 				if (glm::length(solutions1[i].first - solutions2[j].first) < min_link_length) continue;
 				if (glm::length(solutions1[i].second - solutions2[j].second) < min_link_length) continue;
 
-				if (avoidBranchDefect && checkBranchDefectForRRRPLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (rotatable_crank && checkRotatableCrankDefectForRRRPLinkage(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (avoid_branch_defect && checkBranchDefectForRRRPLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 				if (checkCircuitDefectForRRRPLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 
 				// collision check
@@ -187,6 +188,21 @@ namespace kinematics {
 		}
 		//else if (S1 < 0 && S2 >= 0) return 2;
 		else return 3;
+	}
+
+	/**
+	* Check if the linkage has rotatable crank defect.
+	* If the crank is not fully rotatable, true is returned.
+	*/
+	bool checkRotatableCrankDefectForRRRPLinkage(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+		int linkage_type = getRRRPType(p0, p1, p2, p3);
+
+		if (linkage_type == 0) {
+			return false;
+		}
+		else {
+			return true;
+		}
 	}
 
 	bool checkBranchDefectForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {

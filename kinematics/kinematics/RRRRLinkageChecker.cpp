@@ -15,9 +15,9 @@ namespace kinematics {
 	* @param solutions1	the output solutions for the world coordinates of the driving crank at the first pose, each of which contains a pair of the center point and the circle point
 	* @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
 	*/
-	void calculateSolutionOf4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
+	void calculateSolutionOf4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, double sigma, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
 		if (poses.size() > 3) {
-			calculateSolutionOf4RLinkageForManyPoses(poses, linkage_region_pts, solutions1, solutions2);
+			calculateSolutionOf4RLinkageForManyPoses(poses, linkage_region_pts, num_samples, sigma, solutions1, solutions2);
 			return;
 		}
 		
@@ -37,7 +37,7 @@ namespace kinematics {
 		BBox bbox = boundingBox(valid_region);
 
 		int cnt = 0;
-		for (int iter = 0; iter < 10000000 && cnt < 1000; iter++) {
+		for (int iter = 0; iter < num_samples * 10000 && cnt < num_samples; iter++) {
 			// sample a point within the valid region as the local coordinate of a circle point
 			glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
 
@@ -63,7 +63,7 @@ namespace kinematics {
 		}
 	}
 
-	void calculateSolutionOf4RLinkageForManyPoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
+	void calculateSolutionOf4RLinkageForManyPoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, double stddev, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
 		solutions1.clear();
 		solutions2.clear();
 
@@ -83,7 +83,7 @@ namespace kinematics {
 		BBox bbox_local = boundingBox(valid_region);
 
 		int cnt = 0;
-		for (int iter = 0; iter < 10000000 && cnt < 1000; iter++) {
+		for (int iter = 0; iter < num_samples * 10000 && cnt < num_samples; iter++) {
 			// sample a point within the valid region as the world coordinates of a center point
 			glm::dvec2 A0(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
 
@@ -144,7 +144,7 @@ namespace kinematics {
 		}
 	}
 
-	std::vector<glm::dvec2> findBestSolutionOf4RLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool avoidGrashofDefect, bool avoidBranchDefect, double min_link_length) {
+	std::vector<glm::dvec2> findBestSolutionOf4RLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool rotatable_crank, bool avoid_branch_defect, double min_link_length) {
 		time_t start = clock();
 
 		std::vector<std::vector<glm::dvec2>> candidates;
@@ -156,8 +156,8 @@ namespace kinematics {
 				if (glm::length(solutions1[i].second - solutions2[j].second) < min_link_length) continue;
 
 				if (checkFolding(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
-				if (avoidGrashofDefect && checkGrashofDefect(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
-				if (avoidBranchDefect && checkBranchDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (rotatable_crank && checkRotatableCrankDefectFor4RLinkage(solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
+				if (avoid_branch_defect && checkBranchDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 				if (checkCircuitDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 				if (checkOrderDefectFor4RLinkage(poses, solutions1[i].first, solutions2[j].first, solutions1[i].second, solutions2[j].second)) continue;
 
@@ -270,13 +270,10 @@ namespace kinematics {
 	}
 
 	/**
-	* Check if the linkage has Grashof defect.
-	* If the following conditions are not satisified, the linkage has Grashof defect, and true is returned.
-	* - The sum of the shortest and longest link is less than the sum of the remaining links (i.e., s + l <= p + q).
-	* - The shortest link is either a driving link or a ground link.
-	* If both conditions are satisfied, there is no Grashof defect, and false is returned.
+	* Check if the linkage has a rotatable crank defect.
+	* If the crank is not fully rotatable, true is returned.
 	*/
-	bool checkGrashofDefect(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+	bool checkRotatableCrankDefectFor4RLinkage(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
 		int linkage_type = getGrashofType(p0, p1, p2, p3);
 
 		if (linkage_type == 0 || linkage_type == 1) {
