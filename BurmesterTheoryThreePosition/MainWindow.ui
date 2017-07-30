@@ -66,9 +66,8 @@
     <property name="title">
      <string>Layer</string>
     </property>
-    <addaction name="actionLayer1"/>
-    <addaction name="actionLayer2"/>
-    <addaction name="actionLayer3"/>
+    <addaction name="actionAddLayer"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -335,6 +334,11 @@
   <action name="actionCalculateSolutionSliderCrank">
    <property name="text">
     <string>Calculate Solutions for Slider Crank</string>
+   </property>
+  </action>
+  <action name="actionAddLayer">
+   <property name="text">
+    <string>Add Layer</string>
    </property>
   </action>
  </widget>

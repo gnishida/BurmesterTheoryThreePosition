@@ -70,6 +70,7 @@ namespace canvas {
 		void pasteCopiedShapes();
 		void circularRepeat(int num_repeat);
 		void setMode(int mode);
+		void addLayer();
 		void setLayer(int layer_id);
 		void open(const QString& filename);
 		void save(const QString& filename);

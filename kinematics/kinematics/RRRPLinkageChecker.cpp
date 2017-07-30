@@ -359,7 +359,7 @@ namespace kinematics {
 		// initialize the visited flag
 		std::vector<bool> visited(poses.size(), false);
 		visited[0] = true;
-		int unvisited = poses.size() - 1;
+		int unvisited = 2;
 
 		// run forward until collision is deteted or all the poses are reached
 		while (true) {
@@ -510,7 +510,7 @@ namespace kinematics {
 		// initialize the visited flag
 		std::vector<bool> visited(poses.size(), false);
 		visited[0] = true;
-		int unvisited = poses.size() - 1;
+		int unvisited = 2;
 
 		// run forward until collision is deteted or all the poses are reached
 		while (true) {

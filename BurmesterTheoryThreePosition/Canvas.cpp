@@ -35,7 +35,6 @@ namespace canvas {
 		collision_check = true;
 
 		selectedJoint = std::make_pair(-1, -1);
-		//solutions.resize(2);
 		linkage_type = LINKAGE_4R;
 		linkage_subtype = -1;
 		orderDefect = false;
@@ -73,7 +72,14 @@ namespace canvas {
 	}
 
 	void Canvas::deleteSelectedShapes() {
-		layers[layer_id].deleteSelectedShapes();
+		for (int i = layers[layer_id].shapes.size() - 1; i >= 0; --i) {
+			if (layers[layer_id].shapes[i]->isSelected()) {
+				for (int l = 0; l < layers.size(); l++) {
+					layers[l].shapes.erase(layers[l].shapes.begin() + i);
+				}
+			}
+		}
+
 		current_shape.reset();
 		update();
 	}
@@ -182,6 +188,15 @@ namespace canvas {
 			update();
 		}
 	}
+	
+	void Canvas::addLayer() {
+		layers.resize(layers.size() + 1);
+		setLayer(layers.size() - 1);
+
+		for (int i = 0; i < layers[0].shapes.size(); i++) {
+			layers.back().shapes.push_back(layers[0].shapes[i]->clone());
+		}
+	}
 
 	void Canvas::setLayer(int layer_id) {
 		if (this->layer_id != layer_id) {
@@ -227,6 +242,9 @@ namespace canvas {
 		// clear the kinematic data
 		kinematics.clear();
 		solutions.clear();
+
+		// update the layer menu based on the loaded data
+		mainWin->initLayerMenu(layers.size());
 
 		update();
 	}
@@ -354,6 +372,8 @@ namespace canvas {
 	}
 
 	void Canvas::calculateSolutions(int linkage_type) {
+		time_t start = clock();
+
 		this->linkage_type = linkage_type;
 
 		// get the geometry of fixed rigid bodies, moving bodies, linkage regions
@@ -459,6 +479,9 @@ namespace canvas {
 			kinematics[i].diagram.initialize();
 		}
 
+		time_t end = clock();
+		std::cout << "Total computation time was " << (double)(end - start) / CLOCKS_PER_SEC << " sec." << std::endl;
+
 		update();
 
 		updateDefectFlag(poses[0], kinematics[0]);
@@ -521,11 +544,13 @@ namespace canvas {
 			for (int l = 0; l < layers.size(); ++l) {
 				if (l == layer_id) continue;
 				for (int i = 0; i < layers[l].shapes.size(); ++i) {
-					layers[l].shapes[i]->draw(painter, origin, scale);
+					if (layers[l].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+						layers[l].shapes[i]->draw(painter, origin, scale);
+					}
 				}
 			}
 
-			// make the unselected layers blurry
+			// make the unselected layers faded
 			painter.setPen(QColor(255, 255, 255, 160));
 			painter.setBrush(QColor(255, 255, 255, 160));
 			painter.drawRect(0, 0, width(), height());
@@ -839,7 +864,16 @@ namespace canvas {
 				glm::dvec2 dir = screenToWorldCoordinates(e->x(), e->y()) - op->pivot;
 				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
 					if (layers[layer_id].shapes[i]->isSelected()) {
-						layers[layer_id].shapes[i]->translate(dir);
+						if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+							// if the shape is a regular body, move it only for the selected layer
+							layers[layer_id].shapes[i]->translate(dir);
+						}
+						else {
+							// if the shape is a linkage region, move it for all the layers in order to make the position of the linkage region the same across the layers
+							for (int l = 0; l < layers.size(); l++) {
+								layers[l].shapes[i]->translate(dir);
+							}
+						}
 					}
 				}
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
@@ -852,7 +886,16 @@ namespace canvas {
 				double theta = atan2(dir2.y, dir2.x) - atan2(dir1.y, dir1.x);
 				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
 					if (layers[layer_id].shapes[i]->isSelected()) {
-						layers[layer_id].shapes[i]->rotate(theta);
+						if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+							// if the shape is a regular body, rotate it only for the selected layer
+							layers[layer_id].shapes[i]->rotate(theta);
+						}
+						else {
+							// if the shape is a linkage region, rotate it for all the layers in order to make the position of the linkage region the same across the layers
+							for (int l = 0; l < layers.size(); l++) {
+								layers[l].shapes[i]->rotate(theta);
+							}
+						}
 					}
 				}
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
@@ -866,7 +909,10 @@ namespace canvas {
 				glm::dvec2 resize_scale(dir2.x / dir1.x, dir2.y / dir1.y);
 				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
 					if (layers[layer_id].shapes[i]->isSelected()) {
-						layers[layer_id].shapes[i]->resize(resize_scale, resize_center);
+						// resize the shape for all the layers in order to make the size of the shape the same across the layers
+						for (int l = 0; l < layers.size(); l++) {
+							layers[l].shapes[i]->resize(resize_scale, resize_center);
+						}
 					}
 				}
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
@@ -961,8 +1007,11 @@ namespace canvas {
 			if (current_shape) {
 				// The shape is created.
 				current_shape->completeDrawing();
-				current_shape->select();
-				layers[layer_id].shapes.push_back(current_shape);
+				//current_shape->select();
+				for (int i = 0; i < layers.size(); i++) {
+					layers[i].shapes.push_back(current_shape->clone());
+				}
+				layers[layer_id].shapes.back()->select();
 				mode = MODE_SELECT;
 				history.push(layers);
 				current_shape.reset();

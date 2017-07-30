@@ -59,6 +59,7 @@ public:
     QAction *actionTest;
     QAction *actionCircularRepeat;
     QAction *actionCalculateSolutionSliderCrank;
+    QAction *actionAddLayer;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -153,6 +154,8 @@ public:
         actionCircularRepeat->setObjectName(QStringLiteral("actionCircularRepeat"));
         actionCalculateSolutionSliderCrank = new QAction(MainWindowClass);
         actionCalculateSolutionSliderCrank->setObjectName(QStringLiteral("actionCalculateSolutionSliderCrank"));
+        actionAddLayer = new QAction(MainWindowClass);
+        actionAddLayer->setObjectName(QStringLiteral("actionAddLayer"));
         centralWidget = new QWidget(MainWindowClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         MainWindowClass->setCentralWidget(centralWidget);
@@ -206,9 +209,8 @@ public:
         menuMode->addAction(actionLinkageRegion);
         menuMode->addSeparator();
         menuMode->addAction(actionKinematics);
-        menuLayer->addAction(actionLayer1);
-        menuLayer->addAction(actionLayer2);
-        menuLayer->addAction(actionLayer3);
+        menuLayer->addAction(actionAddLayer);
+        menuLayer->addSeparator();
         menuEdit->addAction(actionUndo);
         menuEdit->addAction(actionRedo);
         menuEdit->addSeparator();
@@ -272,6 +274,7 @@ public:
         actionTest->setText(QApplication::translate("MainWindowClass", "Test", 0));
         actionCircularRepeat->setText(QApplication::translate("MainWindowClass", "Circular Repeat", 0));
         actionCalculateSolutionSliderCrank->setText(QApplication::translate("MainWindowClass", "Calculate Solutions for Slider Crank", 0));
+        actionAddLayer->setText(QApplication::translate("MainWindowClass", "Add Layer", 0));
         menuFile->setTitle(QApplication::translate("MainWindowClass", "File", 0));
         menuTool->setTitle(QApplication::translate("MainWindowClass", "Kinematics", 0));
         menuMode->setTitle(QApplication::translate("MainWindowClass", "Mode", 0));

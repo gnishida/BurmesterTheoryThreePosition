@@ -4,6 +4,7 @@
 #include "PinJoint.h"
 #include "SliderHinge.h"
 #include "BoundingBox.h"
+#include "LeastSquareSolver.h"
 
 namespace kinematics {
 
@@ -15,6 +16,11 @@ namespace kinematics {
 	* @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
 	*/
 	void calculateSolutionOf4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
+		if (poses.size() > 3) {
+			calculateSolutionOf4RLinkageForManyPoses(poses, linkage_region_pts, solutions1, solutions2);
+			return;
+		}
+		
 		solutions1.clear();
 		solutions2.clear();
 
@@ -57,6 +63,87 @@ namespace kinematics {
 		}
 	}
 
+	void calculateSolutionOf4RLinkageForManyPoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2) {
+		solutions1.clear();
+		solutions2.clear();
+
+		srand(0);
+
+		// calculate the bounding boxe of the valid regions
+		BBox bbox_world = boundingBox(linkage_region_pts);
+
+		// convert the coordinates of the valid regions to the local coordinate system of the first pose
+		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
+		std::vector<glm::dvec2> valid_region(linkage_region_pts.size());
+		for (int i = 0; i < linkage_region_pts.size(); i++) {
+			valid_region[i] = glm::dvec2(inv_pose0 * glm::dvec3(linkage_region_pts[i], 1));
+		}
+
+		// calculate the bounding boxes of the valid regions
+		BBox bbox_local = boundingBox(valid_region);
+
+		int cnt = 0;
+		for (int iter = 0; iter < 10000000 && cnt < 1000; iter++) {
+			// sample a point within the valid region as the world coordinates of a center point
+			glm::dvec2 A0(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
+
+			// if the sampled point is outside the valid region, discard it.
+			if (!withinPolygon(linkage_region_pts, A0)) continue;
+
+			// sample a point within the valid region as the local coordinate of a circle point
+			glm::dvec2 a(genRand(bbox_local.minPt.x, bbox_local.maxPt.x), genRand(bbox_local.minPt.y, bbox_local.maxPt.y));
+
+			// if the sampled point is outside the valid region, discard it.
+			if (!withinPolygon(valid_region, a)) continue;
+
+			// setup the initial parameters for optimization
+			column_vector starting_point(4);
+			column_vector lower_bound(4);
+			column_vector upper_bound(4);
+			starting_point(0, 0) = A0.x;
+			starting_point(1, 0) = A0.y;
+			starting_point(2, 0) = a.x;
+			starting_point(3, 0) = a.y;
+			lower_bound(0, 0) = bbox_world.minPt.x;
+			lower_bound(1, 0) = bbox_world.minPt.y;
+			lower_bound(2, 0) = bbox_local.minPt.x;
+			lower_bound(3, 0) = bbox_local.minPt.y;
+			upper_bound(0, 0) = bbox_world.maxPt.x;
+			upper_bound(1, 0) = bbox_world.maxPt.y;
+			upper_bound(2, 0) = bbox_local.maxPt.x;
+			upper_bound(3, 0) = bbox_local.maxPt.y;
+
+			double min_range = std::numeric_limits<double>::max();
+			for (int i = 0; i < 4; i++) {
+				min_range = std::min(min_range, upper_bound(i, 0) - lower_bound(i, 0));
+			}
+
+			try {
+				find_min_bobyqa(obj_function(poses), starting_point, 14, lower_bound, upper_bound, min_range * 0.19, min_range * 0.0001, 1000);
+
+				A0.x = starting_point(0, 0);
+				A0.y = starting_point(1, 0);
+				a.x = starting_point(2, 0);
+				a.y = starting_point(3, 0);
+
+				// if the center point is outside the valid region, discard it.
+				if (!withinPolygon(linkage_region_pts, A0)) continue;
+
+				glm::dvec2 A1(poses[0] * glm::dvec3(a, 1));
+				glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
+				glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
+				glm::dvec2 A4(poses[3] * glm::dvec3(a, 1));
+
+				solutions1.push_back(std::make_pair(A0, A1));
+				solutions2.push_back(std::make_pair(A0, A1));
+				cnt++;
+			}
+			catch (std::exception& e) {
+				//std::cout << e.what() << std::endl;
+			}
+		}
+	}
+
 	std::vector<glm::dvec2> findBestSolutionOf4RLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions1, const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions2, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, bool avoidGrashofDefect, bool avoidBranchDefect, double min_link_length) {
 		time_t start = clock();
 
@@ -84,7 +171,7 @@ namespace kinematics {
 		// select the best solution based on the trajectory
 		if (candidates.size() > 0) {
 			time_t end = clock();
-			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for checking hard constraints for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
 			start = clock();
 
 			double min_length = std::numeric_limits<double>::max();
@@ -98,14 +185,14 @@ namespace kinematics {
 			}
 
 			end = clock();
-			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << candidates.size() << " candidates." << std::endl;
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for checking soft constraints for " << candidates.size() << " candidates." << std::endl;
 			std::cout << best << " th candidate was selected." << std::endl;
 
 			return candidates[best];
 		}
 		else {
 			time_t end = clock();
-			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for checking hard constraints for " << solutions1.size() << " x " << solutions2.size() << " solutions." << std::endl;
 			std::cout << "No solution was found." << std::endl;
 
 			std::vector<glm::dvec2> ans(4);
@@ -413,7 +500,7 @@ namespace kinematics {
 		// initialize the visited flag
 		std::vector<bool> visited(poses.size(), false);
 		visited[0] = true;
-		int unvisited = poses.size() - 1;
+		int unvisited = 2;
 
 		// run forward until collision is deteted or all the poses are reached
 		while (true) {
@@ -564,7 +651,7 @@ namespace kinematics {
 		// initialize the visited flag
 		std::vector<bool> visited(poses.size(), false);
 		visited[0] = true;
-		int unvisited = poses.size() - 1;
+		int unvisited = 2;
 
 		// run forward until collision is deteted or all the poses are reached
 		while (true) {

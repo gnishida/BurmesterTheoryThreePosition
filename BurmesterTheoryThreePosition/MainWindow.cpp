@@ -15,12 +15,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	groupMode->addAction(ui.actionLinkageRegion);
 	groupMode->addAction(ui.actionKinematics);
 	ui.actionMove->setChecked(true);
-
-	QActionGroup* groupLayer = new QActionGroup(this);
-	groupLayer->addAction(ui.actionLayer1);
-	groupLayer->addAction(ui.actionLayer2);
-	groupLayer->addAction(ui.actionLayer3);
-	ui.actionLayer1->setChecked(true);
+	
+	groupLayer = new QActionGroup(this);
+	/*
+	menuLayers.push_back(ui.menuLayer->addAction("Layer 1"));
+	menuLayers.push_back(ui.menuLayer->addAction("Layer 2"));
+	menuLayers.push_back(ui.menuLayer->addAction("Layer 3"));
+	groupLayer = new QActionGroup(this);
+	for (int i = 0; i < menuLayers.size(); i++) {
+		menuLayers[i]->setCheckable(true);
+		groupLayer->addAction(menuLayers[i]);
+	}
+	menuLayers[0]->setChecked(true);
+	*/
+	initLayerMenu(3);
 
 	ui.actionCollisionCheck->setChecked(canvas->collision_check);
 
@@ -41,9 +49,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionPolygon, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionLinkageRegion, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionKinematics, SIGNAL(triggered()), this, SLOT(onModeChanged()));
-	connect(ui.actionLayer1, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
-	connect(ui.actionLayer2, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
-	connect(ui.actionLayer3, SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+	connect(ui.actionAddLayer, SIGNAL(triggered()), this, SLOT(onAddLayer()));
+	/*
+	for (int i = 0; i < menuLayers.size(); i++) {
+		connect(menuLayers[i], SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+	}
+	*/
 	connect(ui.actionCalculateSolution4RLinkage, SIGNAL(triggered()), this, SLOT(onCalculateSolution4RLinkage()));
 	connect(ui.actionCalculateSolutionSliderCrank, SIGNAL(triggered()), this, SLOT(onCalculateSolutionSliderCrank()));
 	connect(ui.actionRun, SIGNAL(triggered()), this, SLOT(onRun()));
@@ -55,6 +66,24 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 }
 
 MainWindow::~MainWindow() {
+}
+
+void MainWindow::initLayerMenu(int num_layers) {
+	for (int i = 0; i < menuLayers.size(); i++) {
+		disconnect(menuLayers[i], SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+		ui.menuLayer->removeAction(menuLayers[i]);
+		groupLayer->removeAction(menuLayers[i]);
+		delete menuLayers[i];
+	}
+	menuLayers.clear();
+
+	for (int i = 0; i < num_layers; i++) {
+		menuLayers.push_back(ui.menuLayer->addAction(QString("Layer %1").arg(i + 1)));
+		menuLayers[i]->setCheckable(true);
+		groupLayer->addAction(menuLayers[i]);
+		connect(menuLayers[i], SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+	}
+	menuLayers[0]->setChecked(true);
 }
 
 void MainWindow::onNew() {
@@ -121,24 +150,28 @@ void MainWindow::onModeChanged() {
 	else if (ui.actionLinkageRegion->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_LINKAGE_REGION);
 	}
-	else if (ui.actionLinkageAvoidance->isChecked()) {
-		canvas->setMode(canvas::Canvas::MODE_LINKAGE_AVOIDANCE);
-	}
 	else if (ui.actionKinematics->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_KINEMATICS);
 	}
 	update();
 }
 
+void MainWindow::onAddLayer() {
+	menuLayers.push_back(ui.menuLayer->addAction(QString("Layer %1").arg(menuLayers.size() + 1)));
+	menuLayers.back()->setCheckable(true);
+	groupLayer->addAction(menuLayers.back());
+	menuLayers.back()->setChecked(true);
+	connect(menuLayers.back(), SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+
+	canvas->addLayer();
+}
+
 void MainWindow::onLayerChanged() {
-	if (ui.actionLayer1->isChecked()) {
-		canvas->setLayer(0);
-	}
-	else if (ui.actionLayer2->isChecked()) {
-		canvas->setLayer(1);
-	}
-	else if (ui.actionLayer3->isChecked()) {
-		canvas->setLayer(2);
+	for (int i = 0; i < menuLayers.size(); i++) {
+		if (menuLayers[i]->isChecked()) {
+			canvas->setLayer(i);
+			break;
+		}
 	}
 }
 

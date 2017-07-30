@@ -4,17 +4,22 @@
 #include <QtWidgets/QMainWindow>
 #include "ui_MainWindow.h"
 #include "Canvas.h"
+#include <vector>
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
 
 public:
 	Ui::MainWindowClass ui;
+	std::vector<QAction*> menuLayers;
+	QActionGroup* groupLayer;
 	canvas::Canvas* canvas;
 
 public:
 	MainWindow(QWidget *parent = 0);
 	~MainWindow();
+
+	void initLayerMenu(int num_layers);
 
 public slots:
 	void onNew();
@@ -28,6 +33,7 @@ public slots:
 	void onSelectAll();
 	void onCircularRepeat();
 	void onModeChanged();
+	void onAddLayer();
 	void onLayerChanged();
 	void onCalculateSolution4RLinkage();
 	void onCalculateSolutionSliderCrank();

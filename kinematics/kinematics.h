@@ -12,3 +12,4 @@
 #include "kinematics/BBox.h"
 #include "kinematics/RRRRLinkageChecker.h"
 #include "kinematics/RRRPLinkageChecker.h"
+#include "kinematics/LeastSquareSolver.h"

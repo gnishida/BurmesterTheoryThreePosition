@@ -125,6 +125,9 @@
     <ClCompile Include="..\kinematics\kinematics\RRRRLinkageChecker.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
+    <ClCompile Include="..\kinematics\kinematics\LeastSquareSolver.cpp">
+      <Filter>Source Files\kinematics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="MainWindow.h">
@@ -208,6 +211,9 @@
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
     <ClInclude Include="..\kinematics\kinematics\RRRRLinkageChecker.h">
+      <Filter>Source Files\kinematics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\LeastSquareSolver.h">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
   </ItemGroup>

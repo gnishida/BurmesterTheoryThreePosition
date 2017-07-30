@@ -306,6 +306,75 @@ namespace kinematics {
 	}
 
 	/**
+	 * Calculate the circle center in a least square manner.
+	 * Follow the algorithm described in http://www.dtcenter.org/met/users/docs/write_ups/circle_fit.pdf
+	 */
+	void circleFit(const std::vector<glm::dvec2>& p, glm::dvec2& c, double& r) {
+		if (p.size() == 0) throw "No point";
+		else if (p.size() == 1) {
+			c = p[0];
+			r = 0;
+		}
+		else if (p.size() == 2) {
+			c = (p[0] + p[1]) * 0.5;
+			r = glm::length(p[0] - p[1]) * 0.5;
+		}
+		else if (p.size() == 3) {
+			c = circleCenterFromThreePoints(p[0], p[1], p[2]);
+			r = glm::length(p[0] - c);
+		}
+		else {
+			// calculate the average x and y
+			glm::dvec2 avg;
+			for (int i = 0; i < p.size(); i++) {
+				avg += p[i];
+			}
+			avg /= p.size();
+
+			// convert to uv coordinates
+			std::vector<glm::dvec2> uv(p.size());
+			for (int i = 0; i < p.size(); i++) {
+				uv[i] = p[i] - avg;
+			}
+
+			// calculate S_uu, S_uv, S_vv, S_uuu, S_uuv, S_uvv, and S_vvv
+			double S_uu = 0;
+			double S_uv = 0;
+			double S_vv = 0;
+			double S_uuu = 0;
+			double S_uuv = 0;
+			double S_uvv = 0;
+			double S_vvv = 0;
+			for (int i = 0; i < uv.size(); i++) {
+				S_uu += uv[i].x * uv[i].x;
+				S_uv += uv[i].x * uv[i].y;
+				S_vv += uv[i].y * uv[i].y;
+				S_uuu += uv[i].x * uv[i].x * uv[i].x;
+				S_uuv += uv[i].x * uv[i].x * uv[i].y;
+				S_uvv += uv[i].x * uv[i].y * uv[i].y;
+				S_vvv += uv[i].y * uv[i].y * uv[i].y;
+			}
+
+			// calculate the det of mat [S_uu, S_uv; S_uv, S_vv]
+			double det = S_uu * S_vv - S_uv * S_uv;
+			if (det == 0) {
+				throw "No circle center.";
+			}
+
+			// calculate the circle center in uv coordinates
+			double uc = (S_vv * (S_uuu + S_uvv) - S_uv * (S_uuv + S_vvv)) * 0.5 / det;
+			double vc = (-S_uv * (S_uuu + S_uvv) + S_uu * (S_uuv + S_vvv)) * 0.5 / det;
+
+			// calculate the circle center in xy coordinates
+			c.x = uc + avg.x;
+			c.y = vc + avg.y;
+
+			// calculate the radius
+			r = sqrt(uc * uc + vc * vc + (S_uu + S_vv) / p.size());
+		}
+	}
+
+	/**
 	 * Calcualte the reflection point of p about the line that passes a and its direction is v.
 	 */
 	glm::dvec2 reflect(const glm::dvec2& p, const glm::dvec2& a, const glm::dvec2& v) {
