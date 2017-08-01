@@ -422,27 +422,31 @@ namespace canvas {
 
 		kinematics.clear();
 
-		solutions.resize(body_pts.size(), std::vector<std::vector<kinematics::Solution>>(2));
+		solutions.resize(body_pts.size(), std::vector<kinematics::Solution>(2));
 		for (int i = 0; i < body_pts.size(); i++) {
+			time_t start = clock();
+
 			// calculate the circle point curve and center point curve
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::calculateSolutionOf4RLinkage(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
+				kinematics::calculateSolutionOf4RLinkage(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
+				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
 			}
 
-			std::cout << solutions[i][0].size() << " solutions were initially selected." << std::endl;
+			time_t end = clock();
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for obtaining " << solutions.size() << " candidates." << std::endl;
 
+			start = clock();
 			if (linkage_type == LINKAGE_4R) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0, pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution[1])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution[2])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, solution[3])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution.fixed_point[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution.fixed_point[1])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution.moving_point[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, solution.moving_point[1])));
 				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
 				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
 				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
@@ -452,16 +456,18 @@ namespace canvas {
 				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
 
 				kinematics.push_back(kin);
+
+				updateDefectFlag(solution.poses, kinematics[0]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0, pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution[1])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution[2])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::SliderHinge>(new kinematics::SliderHinge(3, false, solution[3])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution.fixed_point[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution.fixed_point[1])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution.moving_point[0])));
+				kin.diagram.addJoint(boost::shared_ptr<kinematics::SliderHinge>(new kinematics::SliderHinge(3, false, solution.moving_point[1])));
 				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
 				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
 				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
@@ -471,7 +477,12 @@ namespace canvas {
 				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
 
 				kinematics.push_back(kin);
+
+				updateDefectFlag(solution.poses, kinematics[0]);
 			}
+
+			end = clock();
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for finding the best solution. " << std::endl;
 		}
 
 		// add the fixed rigid bodies to the fixed joints of all the linkages
@@ -491,15 +502,22 @@ namespace canvas {
 
 		update();
 
-		updateDefectFlag(poses[0], kinematics[0]);
+		//updateDefectFlag(poses[0], kinematics[0]);
 	}
 
-	int Canvas::findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt) {
+	/**
+	 * Find the closest solution.
+	 * 
+	 * @param solutions	solution set
+	 * @param pt		mouse position
+	 * @param joint_id	0 -- driving crank / 1 -- follower
+	 */
+	int Canvas::findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt, int joint_id) {
 		int ans = -1;
 		double min_dist = std::numeric_limits<double>::max();
 
 		for (int i = 0; i < solutions.size(); i++) {
-			double dist = glm::length(solutions[i].fixed_point - pt);
+			double dist = glm::length(solutions[i].fixed_point[joint_id] - pt);
 			if (dist < min_dist) {
 				min_dist = dist;
 				ans = i;
@@ -588,13 +606,13 @@ namespace canvas {
 				int linkage_id = selectedJoint.first;
 				painter.setPen(QPen(QColor(255, 128, 128, 64), 1));
 				painter.setBrush(QBrush(QColor(255, 128, 128, 64)));
-				for (int i = 0; i < solutions[linkage_id][0].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][0][i].fixed_point.x * scale, origin.y() - solutions[linkage_id][0][i].fixed_point.y * scale, 3, 3);
+				for (int i = 0; i < solutions[linkage_id].size(); i++) {
+					painter.drawEllipse(origin.x() + solutions[linkage_id][i].fixed_point[0].x * scale, origin.y() - solutions[linkage_id][i].fixed_point[0].y * scale, 3, 3);
 				}
 				painter.setPen(QPen(QColor(128, 128, 255, 64), 1));
 				painter.setBrush(QBrush(QColor(128, 128, 255, 64)));
-				for (int i = 0; i < solutions[linkage_id][1].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][1][i].fixed_point.x * scale, origin.y() - solutions[linkage_id][1][i].fixed_point.y * scale, 3, 3);
+				for (int i = 0; i < solutions[linkage_id].size(); i++) {
+					painter.drawEllipse(origin.x() + solutions[linkage_id][i].fixed_point[1].x * scale, origin.y() - solutions[linkage_id][i].fixed_point[1].y * scale, 3, 3);
 				}
 			}
 
@@ -948,40 +966,38 @@ namespace canvas {
 					if (ctrlPressed) {
 						// move the selected joint
 						kinematics[linkage_id].diagram.joints[joint_id]->pos = pt;
+
+						updateDefectFlag(poses[linkage_id], kinematics[linkage_id]);
 					}
 					else {
 						// select a solution
 						glm::dvec2 pt = screenToWorldCoordinates(e->x(), e->y());
-						int selectedSolution = findSolution(solutions[linkage_id][joint_id], pt);
+						int selectedSolution = findSolution(solutions[linkage_id], pt, joint_id);
 
 						if (selectedSolution >= 0) {
 							// move the selected joint (center point)
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution].fixed_point;
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][selectedSolution].fixed_point[joint_id];
 
 							// move the other end joint (circle point)
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution].moving_point;
-						}
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][selectedSolution].moving_point[joint_id];
 
-						// initialize the other link
-						joint_id = 1 - joint_id;
-						int selectedSolution2 = findSolution(solutions[linkage_id][joint_id], kinematics[linkage_id].diagram.joints[joint_id]->pos);
-						if (selectedSolution2 >= 0) {
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution2].fixed_point;
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution2].moving_point;
-						}
+							// initialize the other link
+							joint_id = 1 - joint_id;
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][selectedSolution].fixed_point[joint_id];
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][selectedSolution].moving_point[joint_id];
 
-						// initialize the other linkages
-						for (int i = 0; i < kinematics.size(); i++) {
-							if (i == linkage_id) continue;
+							// initialize the other linkages
+							for (int i = 0; i < kinematics.size(); i++) {
+								if (i == linkage_id) continue;
 
-							int selectedSolution = findSolution(solutions[i][0], kinematics[i].diagram.joints[0]->pos);
-							if (selectedSolution >= 0) {
-								kinematics[i].diagram.joints[2]->pos = solutions[i][0][selectedSolution].moving_point;
+								int selectedSolution = findSolution(solutions[i], kinematics[i].diagram.joints[0]->pos, 0);
+								if (selectedSolution >= 0) {
+									kinematics[i].diagram.joints[2]->pos = solutions[i][selectedSolution].moving_point[0];
+									kinematics[i].diagram.joints[3]->pos = solutions[i][selectedSolution].moving_point[1];
+								}
 							}
-							int selectedSolution2 = findSolution(solutions[i][1], kinematics[i].diagram.joints[1]->pos);
-							if (selectedSolution2 >= 0) {
-								kinematics[i].diagram.joints[3]->pos = solutions[i][1][selectedSolution2].moving_point;
-							}
+
+							updateDefectFlag(solutions[linkage_id][selectedSolution].poses, kinematics[linkage_id]);
 						}
 					}
 
@@ -1002,7 +1018,7 @@ namespace canvas {
 					}
 					update();
 
-					updateDefectFlag(poses[linkage_id], kinematics[linkage_id]);
+					//updateDefectFlag(poses[linkage_id], kinematics[linkage_id]);
 				}
 			}
 		}

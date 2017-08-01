@@ -18,6 +18,7 @@ namespace kinematics {
 	}
 
 	double genNormal(double myu, double sigma) {
+		if (sigma == 0) return myu;
 		std::normal_distribution<double> distribution(myu, sigma);
 		return distribution(rnd_generator);
 	}

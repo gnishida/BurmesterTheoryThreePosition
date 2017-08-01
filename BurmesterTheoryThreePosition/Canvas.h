@@ -43,7 +43,7 @@ namespace canvas {
 		QPointF prev_mouse_pt;
 		QPointF origin;
 		double scale;
-		std::vector<std::vector<std::vector<kinematics::Solution>>> solutions;	// solutions[0] for the driving crank, solutions[1] for the follower
+		std::vector<std::vector<kinematics::Solution>> solutions;
 		std::pair<int, int> selectedJoint;
 		//std::vector<bool> is_fixed_bodies;
 		std::vector<std::vector<glm::dvec2>> fixed_body_pts;
@@ -92,7 +92,7 @@ namespace canvas {
 		glm::dvec2 worldToScreenCoordinates(const glm::dvec2& p);
 
 		void calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight);
-		int findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt);
+		int findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt, int joint_id);
 		void updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics);
 		void onDebug();
 
