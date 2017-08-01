@@ -40,6 +40,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionLinkageRegion, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionKinematics, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionAddLayer, SIGNAL(triggered()), this, SLOT(onAddLayer()));
+	connect(ui.actionInsertLayer, SIGNAL(triggered()), this, SLOT(onInsertLayer()));
+	connect(ui.actionDeleteLayer, SIGNAL(triggered()), this, SLOT(onDeleteLayer()));
 	connect(ui.actionCalculateSolution4RLinkage, SIGNAL(triggered()), this, SLOT(onCalculateSolution4RLinkage()));
 	connect(ui.actionCalculateSolutionSliderCrank, SIGNAL(triggered()), this, SLOT(onCalculateSolutionSliderCrank()));
 	connect(ui.actionRun, SIGNAL(triggered()), this, SLOT(onRun()));
@@ -48,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionStepForward, SIGNAL(triggered()), this, SLOT(onStepForward()));
 	connect(ui.actionStepBackward, SIGNAL(triggered()), this, SLOT(onStepBackward()));
 	connect(ui.actionCollisionCheck, SIGNAL(triggered()), this, SLOT(onCollisionCheck()));
+	connect(ui.actionDebug, SIGNAL(triggered()), this, SLOT(onDebug()));
 }
 
 MainWindow::~MainWindow() {
@@ -151,6 +154,25 @@ void MainWindow::onAddLayer() {
 	canvas->addLayer();
 }
 
+void MainWindow::onInsertLayer() {
+	menuLayers.push_back(ui.menuLayer->addAction(QString("Layer %1").arg(menuLayers.size() + 1)));
+	menuLayers.back()->setCheckable(true);
+	groupLayer->addAction(menuLayers.back());
+	connect(menuLayers.back(), SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+
+	canvas->insertLayer();
+}
+
+void MainWindow::onDeleteLayer() {
+	disconnect(menuLayers.back(), SIGNAL(triggered()), this, SLOT(onLayerChanged()));
+	ui.menuLayer->removeAction(menuLayers.back());
+	groupLayer->removeAction(menuLayers.back());
+	delete menuLayers.back();
+	menuLayers.resize(menuLayers.size() - 1);
+
+	canvas->deleteLayer();
+}
+
 void MainWindow::onLayerChanged() {
 	for (int i = 0; i < menuLayers.size(); i++) {
 		if (menuLayers[i]->isChecked()) {
@@ -163,20 +185,27 @@ void MainWindow::onLayerChanged() {
 void MainWindow::onCalculateSolution4RLinkage() {
 	LinkageSynthesisOptionDialog dlg;
 	if (dlg.exec()) {
-		int num_samples = dlg.ui.lineEditNumSamples->text().toInt();
-		double sigma = dlg.ui.lineEditStdDev->text().toDouble();
-
-		canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R, num_samples, sigma, dlg.ui.checkBoxAvoidBranchDefect->isChecked(), dlg.ui.checkBoxRotatableCrank->isChecked());
+		canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R, 
+			dlg.ui.lineEditNumSamples->text().toInt(),
+			dlg.ui.lineEditStdDev->text().toDouble(),
+			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
+			dlg.ui.checkBoxRotatableCrank->isChecked(),
+			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
+			dlg.ui.lineEditTrajectoryWeight->text().toDouble());
 	}
 }
 
 void MainWindow::onCalculateSolutionSliderCrank() {
 	LinkageSynthesisOptionDialog dlg;
 	if (dlg.exec()) {
-		int num_samples = dlg.ui.lineEditNumSamples->text().toInt();
-		double sigma = dlg.ui.lineEditStdDev->text().toDouble();
+		canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP,
+			dlg.ui.lineEditNumSamples->text().toInt(), 
+			dlg.ui.lineEditStdDev->text().toDouble(),
+			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
+			dlg.ui.checkBoxRotatableCrank->isChecked(),
+			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
+			dlg.ui.lineEditTrajectoryWeight->text().toDouble());
 
-		canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP, num_samples, sigma, dlg.ui.checkBoxAvoidBranchDefect->isChecked(), dlg.ui.checkBoxRotatableCrank->isChecked());
 	}
 }
 
@@ -203,6 +232,10 @@ void MainWindow::onStepBackward() {
 
 void MainWindow::onCollisionCheck() {
 	canvas->collision_check = ui.actionCollisionCheck->isChecked();
+}
+
+void MainWindow::onDebug() {
+	canvas->onDebug();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* e) {

@@ -6,7 +6,9 @@ LinkageSynthesisOptionDialog::LinkageSynthesisOptionDialog(QWidget *parent) : QD
 	ui.lineEditNumSamples->setText("1000");
 	ui.lineEditStdDev->setText("1");
 	ui.checkBoxAvoidBranchDefect->setChecked(true);
-	ui.checkBoxRotatableCrank->setChecked(false);
+	ui.checkBoxRotatableCrank->setChecked(true);
+	ui.lineEditPoseErrorWeight->setText("1");
+	ui.lineEditTrajectoryWeight->setText("1");
 
 	connect(ui.pushButtonOK, SIGNAL(clicked()), this, SLOT(onOK()));
 	connect(ui.pushButtonCancel, SIGNAL(clicked()), this, SLOT(onCancel()));

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>231</width>
-    <height>171</height>
+    <width>281</width>
+    <height>220</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@
   <widget class="QLineEdit" name="lineEditNumSamples">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>160</x>
      <y>10</y>
      <width>101</width>
      <height>20</height>
@@ -41,18 +41,18 @@
     <rect>
      <x>20</x>
      <y>40</y>
-     <width>61</width>
+     <width>121</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>Stdev:</string>
+    <string>Stdev for pose error:</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="lineEditStdDev">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>160</x>
      <y>40</y>
      <width>101</width>
      <height>20</height>
@@ -88,8 +88,8 @@
   <widget class="QPushButton" name="pushButtonOK">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>130</y>
+     <x>30</x>
+     <y>180</y>
      <width>91</width>
      <height>31</height>
     </rect>
@@ -101,14 +101,60 @@
   <widget class="QPushButton" name="pushButtonCancel">
    <property name="geometry">
     <rect>
-     <x>130</x>
-     <y>130</y>
+     <x>160</x>
+     <y>180</y>
      <width>91</width>
      <height>31</height>
     </rect>
    </property>
    <property name="text">
     <string>Cancel</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEditPoseErrorWeight">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>110</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>110</y>
+     <width>111</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Weight for pose error:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEditTrajectoryWeight">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>140</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_4">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>140</y>
+     <width>111</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Weight for trajectory:</string>
    </property>
   </widget>
  </widget>

@@ -33,24 +33,28 @@ public:
     QCheckBox *checkBoxRotatableCrank;
     QPushButton *pushButtonOK;
     QPushButton *pushButtonCancel;
+    QLineEdit *lineEditPoseErrorWeight;
+    QLabel *label_3;
+    QLineEdit *lineEditTrajectoryWeight;
+    QLabel *label_4;
 
     void setupUi(QDialog *LinkageSynthesisOptionDialog)
     {
         if (LinkageSynthesisOptionDialog->objectName().isEmpty())
             LinkageSynthesisOptionDialog->setObjectName(QStringLiteral("LinkageSynthesisOptionDialog"));
-        LinkageSynthesisOptionDialog->resize(231, 171);
+        LinkageSynthesisOptionDialog->resize(281, 220);
         label = new QLabel(LinkageSynthesisOptionDialog);
         label->setObjectName(QStringLiteral("label"));
         label->setGeometry(QRect(20, 10, 61, 21));
         lineEditNumSamples = new QLineEdit(LinkageSynthesisOptionDialog);
         lineEditNumSamples->setObjectName(QStringLiteral("lineEditNumSamples"));
-        lineEditNumSamples->setGeometry(QRect(100, 10, 101, 20));
+        lineEditNumSamples->setGeometry(QRect(160, 10, 101, 20));
         label_2 = new QLabel(LinkageSynthesisOptionDialog);
         label_2->setObjectName(QStringLiteral("label_2"));
-        label_2->setGeometry(QRect(20, 40, 61, 21));
+        label_2->setGeometry(QRect(20, 40, 121, 21));
         lineEditStdDev = new QLineEdit(LinkageSynthesisOptionDialog);
         lineEditStdDev->setObjectName(QStringLiteral("lineEditStdDev"));
-        lineEditStdDev->setGeometry(QRect(100, 40, 101, 20));
+        lineEditStdDev->setGeometry(QRect(160, 40, 101, 20));
         checkBoxAvoidBranchDefect = new QCheckBox(LinkageSynthesisOptionDialog);
         checkBoxAvoidBranchDefect->setObjectName(QStringLiteral("checkBoxAvoidBranchDefect"));
         checkBoxAvoidBranchDefect->setGeometry(QRect(20, 70, 131, 17));
@@ -59,10 +63,22 @@ public:
         checkBoxRotatableCrank->setGeometry(QRect(20, 90, 131, 17));
         pushButtonOK = new QPushButton(LinkageSynthesisOptionDialog);
         pushButtonOK->setObjectName(QStringLiteral("pushButtonOK"));
-        pushButtonOK->setGeometry(QRect(10, 130, 91, 31));
+        pushButtonOK->setGeometry(QRect(30, 180, 91, 31));
         pushButtonCancel = new QPushButton(LinkageSynthesisOptionDialog);
         pushButtonCancel->setObjectName(QStringLiteral("pushButtonCancel"));
-        pushButtonCancel->setGeometry(QRect(130, 130, 91, 31));
+        pushButtonCancel->setGeometry(QRect(160, 180, 91, 31));
+        lineEditPoseErrorWeight = new QLineEdit(LinkageSynthesisOptionDialog);
+        lineEditPoseErrorWeight->setObjectName(QStringLiteral("lineEditPoseErrorWeight"));
+        lineEditPoseErrorWeight->setGeometry(QRect(160, 110, 101, 20));
+        label_3 = new QLabel(LinkageSynthesisOptionDialog);
+        label_3->setObjectName(QStringLiteral("label_3"));
+        label_3->setGeometry(QRect(20, 110, 111, 21));
+        lineEditTrajectoryWeight = new QLineEdit(LinkageSynthesisOptionDialog);
+        lineEditTrajectoryWeight->setObjectName(QStringLiteral("lineEditTrajectoryWeight"));
+        lineEditTrajectoryWeight->setGeometry(QRect(160, 140, 101, 20));
+        label_4 = new QLabel(LinkageSynthesisOptionDialog);
+        label_4->setObjectName(QStringLiteral("label_4"));
+        label_4->setGeometry(QRect(20, 140, 111, 21));
 
         retranslateUi(LinkageSynthesisOptionDialog);
 
@@ -73,11 +89,13 @@ public:
     {
         LinkageSynthesisOptionDialog->setWindowTitle(QApplication::translate("LinkageSynthesisOptionDialog", "LinkageSynthesisOptionDialog", 0));
         label->setText(QApplication::translate("LinkageSynthesisOptionDialog", "# samples:", 0));
-        label_2->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev:", 0));
+        label_2->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for pose error:", 0));
         checkBoxAvoidBranchDefect->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Avoid branch defect", 0));
         checkBoxRotatableCrank->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Fully rotatable crank", 0));
         pushButtonOK->setText(QApplication::translate("LinkageSynthesisOptionDialog", "OK", 0));
         pushButtonCancel->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Cancel", 0));
+        label_3->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Weight for pose error:", 0));
+        label_4->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Weight for trajectory:", 0));
     } // retranslateUi
 
 };

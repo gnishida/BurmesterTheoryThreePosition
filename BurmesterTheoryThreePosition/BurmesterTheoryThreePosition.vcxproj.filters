@@ -137,6 +137,9 @@
     <ClCompile Include="GeneratedFiles\Release\moc_LinkageSynthesisOptionDialog.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="..\kinematics\kinematics\Solution.cpp">
+      <Filter>Source Files\kinematics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="MainWindow.h">
@@ -233,6 +236,9 @@
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_LinkageSynthesisOptionDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\Solution.h">
+      <Filter>Source Files\kinematics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -13,3 +13,4 @@
 #include "kinematics/RRRRLinkageChecker.h"
 #include "kinematics/RRRPLinkageChecker.h"
 #include "kinematics/LeastSquareSolver.h"
+#include "kinematics/Solution.h"

@@ -60,6 +60,9 @@ public:
     QAction *actionCircularRepeat;
     QAction *actionCalculateSolutionSliderCrank;
     QAction *actionAddLayer;
+    QAction *actionInsertLayer;
+    QAction *actionDebug;
+    QAction *actionDeleteLayer;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -67,6 +70,7 @@ public:
     QMenu *menuMode;
     QMenu *menuLayer;
     QMenu *menuEdit;
+    QMenu *menuTool_2;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
 
@@ -156,6 +160,12 @@ public:
         actionCalculateSolutionSliderCrank->setObjectName(QStringLiteral("actionCalculateSolutionSliderCrank"));
         actionAddLayer = new QAction(MainWindowClass);
         actionAddLayer->setObjectName(QStringLiteral("actionAddLayer"));
+        actionInsertLayer = new QAction(MainWindowClass);
+        actionInsertLayer->setObjectName(QStringLiteral("actionInsertLayer"));
+        actionDebug = new QAction(MainWindowClass);
+        actionDebug->setObjectName(QStringLiteral("actionDebug"));
+        actionDeleteLayer = new QAction(MainWindowClass);
+        actionDeleteLayer->setObjectName(QStringLiteral("actionDeleteLayer"));
         centralWidget = new QWidget(MainWindowClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         MainWindowClass->setCentralWidget(centralWidget);
@@ -172,6 +182,8 @@ public:
         menuLayer->setObjectName(QStringLiteral("menuLayer"));
         menuEdit = new QMenu(menuBar);
         menuEdit->setObjectName(QStringLiteral("menuEdit"));
+        menuTool_2 = new QMenu(menuBar);
+        menuTool_2->setObjectName(QStringLiteral("menuTool_2"));
         MainWindowClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(MainWindowClass);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
@@ -185,6 +197,7 @@ public:
         menuBar->addAction(menuMode->menuAction());
         menuBar->addAction(menuLayer->menuAction());
         menuBar->addAction(menuTool->menuAction());
+        menuBar->addAction(menuTool_2->menuAction());
         menuFile->addAction(actionNew);
         menuFile->addAction(actionOpen);
         menuFile->addAction(actionSave);
@@ -210,6 +223,8 @@ public:
         menuMode->addSeparator();
         menuMode->addAction(actionKinematics);
         menuLayer->addAction(actionAddLayer);
+        menuLayer->addAction(actionInsertLayer);
+        menuLayer->addAction(actionDeleteLayer);
         menuLayer->addSeparator();
         menuEdit->addAction(actionUndo);
         menuEdit->addAction(actionRedo);
@@ -221,6 +236,7 @@ public:
         menuEdit->addAction(actionSelectAll);
         menuEdit->addSeparator();
         menuEdit->addAction(actionCircularRepeat);
+        menuTool_2->addAction(actionDebug);
 
         retranslateUi(MainWindowClass);
 
@@ -275,11 +291,15 @@ public:
         actionCircularRepeat->setText(QApplication::translate("MainWindowClass", "Circular Repeat", 0));
         actionCalculateSolutionSliderCrank->setText(QApplication::translate("MainWindowClass", "Calculate Solutions for Slider Crank", 0));
         actionAddLayer->setText(QApplication::translate("MainWindowClass", "Add Layer", 0));
+        actionInsertLayer->setText(QApplication::translate("MainWindowClass", "Insert Layer", 0));
+        actionDebug->setText(QApplication::translate("MainWindowClass", "Debug", 0));
+        actionDeleteLayer->setText(QApplication::translate("MainWindowClass", "Delete Layer", 0));
         menuFile->setTitle(QApplication::translate("MainWindowClass", "File", 0));
         menuTool->setTitle(QApplication::translate("MainWindowClass", "Kinematics", 0));
         menuMode->setTitle(QApplication::translate("MainWindowClass", "Mode", 0));
         menuLayer->setTitle(QApplication::translate("MainWindowClass", "Layer", 0));
         menuEdit->setTitle(QApplication::translate("MainWindowClass", "Edit", 0));
+        menuTool_2->setTitle(QApplication::translate("MainWindowClass", "Tool", 0));
     } // retranslateUi
 
 };

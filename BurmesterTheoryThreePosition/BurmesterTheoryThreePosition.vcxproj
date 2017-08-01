@@ -150,6 +150,7 @@
     <ClCompile Include="..\kinematics\kinematics\RRRPLinkageChecker.cpp" />
     <ClCompile Include="..\kinematics\kinematics\RRRRLinkageChecker.cpp" />
     <ClCompile Include="..\kinematics\kinematics\SliderHinge.cpp" />
+    <ClCompile Include="..\kinematics\kinematics\Solution.cpp" />
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="Circle.cpp" />
@@ -254,6 +255,7 @@
     <ClInclude Include="..\kinematics\kinematics\RRRPLinkageChecker.h" />
     <ClInclude Include="..\kinematics\kinematics\RRRRLinkageChecker.h" />
     <ClInclude Include="..\kinematics\kinematics\SliderHinge.h" />
+    <ClInclude Include="..\kinematics\kinematics\Solution.h" />
     <ClInclude Include="BoundingBox.h" />
     <ClInclude Include="Circle.h" />
     <ClInclude Include="GeneratedFiles\ui_LinkageSynthesisOptionDialog.h" />

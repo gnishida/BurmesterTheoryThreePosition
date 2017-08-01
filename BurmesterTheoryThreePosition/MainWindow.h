@@ -34,6 +34,8 @@ public slots:
 	void onCircularRepeat();
 	void onModeChanged();
 	void onAddLayer();
+	void onInsertLayer();
+	void onDeleteLayer();
 	void onLayerChanged();
 	void onCalculateSolution4RLinkage();
 	void onCalculateSolutionSliderCrank();
@@ -43,6 +45,7 @@ public slots:
 	void onStepForward();
 	void onStepBackward();
 	void onCollisionCheck();
+	void onDebug();
 	void keyPressEvent(QKeyEvent* e);
 	void keyReleaseEvent(QKeyEvent* e);
 };

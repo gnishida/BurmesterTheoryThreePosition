@@ -67,6 +67,8 @@
      <string>Layer</string>
     </property>
     <addaction name="actionAddLayer"/>
+    <addaction name="actionInsertLayer"/>
+    <addaction name="actionDeleteLayer"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -84,11 +86,18 @@
     <addaction name="separator"/>
     <addaction name="actionCircularRepeat"/>
    </widget>
+   <widget class="QMenu" name="menuTool_2">
+    <property name="title">
+     <string>Tool</string>
+    </property>
+    <addaction name="actionDebug"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuMode"/>
    <addaction name="menuLayer"/>
    <addaction name="menuTool"/>
+   <addaction name="menuTool_2"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -339,6 +348,21 @@
   <action name="actionAddLayer">
    <property name="text">
     <string>Add Layer</string>
+   </property>
+  </action>
+  <action name="actionInsertLayer">
+   <property name="text">
+    <string>Insert Layer</string>
+   </property>
+  </action>
+  <action name="actionDebug">
+   <property name="text">
+    <string>Debug</string>
+   </property>
+  </action>
+  <action name="actionDeleteLayer">
+   <property name="text">
+    <string>Delete Layer</string>
    </property>
   </action>
  </widget>

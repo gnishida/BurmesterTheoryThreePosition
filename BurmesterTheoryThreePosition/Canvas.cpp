@@ -190,21 +190,28 @@ namespace canvas {
 	}
 	
 	void Canvas::addLayer() {
-		layers.resize(layers.size() + 1);
+		layers.push_back(layers.back().clone());
 		setLayer(layers.size() - 1);
+	}
 
-		for (int i = 0; i < layers[0].shapes.size(); i++) {
-			layers.back().shapes.push_back(layers[0].shapes[i]->clone());
+	void Canvas::insertLayer() {
+		layers.insert(layers.begin() + layer_id, layers[layer_id].clone());
+		setLayer(layer_id);
+	}
+
+	void Canvas::deleteLayer() {
+		layers.erase(layers.begin() + layer_id);
+		if (layer_id >= layers.size()) {
+			layer_id--;
 		}
+		setLayer(layer_id);
 	}
 
 	void Canvas::setLayer(int layer_id) {
-		if (this->layer_id != layer_id) {
-			layers[this->layer_id].unselectAll();
-			this->layer_id = layer_id;
-			current_shape.reset();
-			update();
-		}
+		layers[this->layer_id].unselectAll();
+		this->layer_id = layer_id;
+		current_shape.reset();
+		update();
 	}
 
 	void Canvas::open(const QString& filename) {
@@ -371,7 +378,7 @@ namespace canvas {
 		return glm::dvec2(origin.x() + p.x * scale, origin.y() - p.y * scale);
 	}
 
-	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank) {
+	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight) {
 		time_t start = clock();
 
 		this->linkage_type = linkage_type;
@@ -415,11 +422,11 @@ namespace canvas {
 
 		kinematics.clear();
 
-		solutions.resize(body_pts.size(), std::vector<std::vector<std::pair<glm::dvec2, glm::dvec2>>>(2));
+		solutions.resize(body_pts.size(), std::vector<std::vector<kinematics::Solution>>(2));
 		for (int i = 0; i < body_pts.size(); i++) {
 			// calculate the circle point curve and center point curve
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::calculateSolutionOf4RLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
+				kinematics::calculateSolutionOf4RLinkage(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
 				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, sigma, solutions[i][0], solutions[i][1]);
@@ -428,7 +435,7 @@ namespace canvas {
 			std::cout << solutions[i][0].size() << " solutions were initially selected." << std::endl;
 
 			if (linkage_type == LINKAGE_4R) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0);
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0, pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -447,7 +454,7 @@ namespace canvas {
 				kinematics.push_back(kin);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0);
+				std::vector<glm::dvec2> solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i][0], solutions[i][1], fixed_body_pts, body_pts[i], rotatable_crank, avoid_branch_defect, 1.0, pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -487,12 +494,12 @@ namespace canvas {
 		updateDefectFlag(poses[0], kinematics[0]);
 	}
 
-	int Canvas::findSolution(const std::vector<std::pair<glm::dvec2, glm::dvec2>>& solutions, const glm::dvec2& pt) {
+	int Canvas::findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt) {
 		int ans = -1;
 		double min_dist = std::numeric_limits<double>::max();
 
 		for (int i = 0; i < solutions.size(); i++) {
-			double dist = glm::length(solutions[i].first - pt);
+			double dist = glm::length(solutions[i].fixed_point - pt);
 			if (dist < min_dist) {
 				min_dist = dist;
 				ans = i;
@@ -515,6 +522,14 @@ namespace canvas {
 			linkage_subtype = kinematics::getRRRPType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			branchDefect = kinematics::checkBranchDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			circuitDefect = kinematics::checkCircuitDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+		}
+	}
+
+	void Canvas::onDebug() {
+		if (kinematics.size() >= 0) {
+			kinematics::checkOrderDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
+			kinematics::checkBranchDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
+			kinematics::checkCircuitDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
 		}
 	}
 
@@ -574,12 +589,12 @@ namespace canvas {
 				painter.setPen(QPen(QColor(255, 128, 128, 64), 1));
 				painter.setBrush(QBrush(QColor(255, 128, 128, 64)));
 				for (int i = 0; i < solutions[linkage_id][0].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][0][i].first.x * scale, origin.y() - solutions[linkage_id][0][i].first.y * scale, 3, 3);
+					painter.drawEllipse(origin.x() + solutions[linkage_id][0][i].fixed_point.x * scale, origin.y() - solutions[linkage_id][0][i].fixed_point.y * scale, 3, 3);
 				}
 				painter.setPen(QPen(QColor(128, 128, 255, 64), 1));
 				painter.setBrush(QBrush(QColor(128, 128, 255, 64)));
 				for (int i = 0; i < solutions[linkage_id][1].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][1][i].first.x * scale, origin.y() - solutions[linkage_id][1][i].first.y * scale, 3, 3);
+					painter.drawEllipse(origin.x() + solutions[linkage_id][1][i].fixed_point.x * scale, origin.y() - solutions[linkage_id][1][i].fixed_point.y * scale, 3, 3);
 				}
 			}
 
@@ -941,18 +956,18 @@ namespace canvas {
 
 						if (selectedSolution >= 0) {
 							// move the selected joint (center point)
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution].first;
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution].fixed_point;
 
 							// move the other end joint (circle point)
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution].second;
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution].moving_point;
 						}
 
 						// initialize the other link
 						joint_id = 1 - joint_id;
 						int selectedSolution2 = findSolution(solutions[linkage_id][joint_id], kinematics[linkage_id].diagram.joints[joint_id]->pos);
 						if (selectedSolution2 >= 0) {
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution2].first;
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution2].second;
+							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][joint_id][selectedSolution2].fixed_point;
+							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][joint_id][selectedSolution2].moving_point;
 						}
 
 						// initialize the other linkages
@@ -961,11 +976,11 @@ namespace canvas {
 
 							int selectedSolution = findSolution(solutions[i][0], kinematics[i].diagram.joints[0]->pos);
 							if (selectedSolution >= 0) {
-								kinematics[i].diagram.joints[2]->pos = solutions[i][0][selectedSolution].second;
+								kinematics[i].diagram.joints[2]->pos = solutions[i][0][selectedSolution].moving_point;
 							}
 							int selectedSolution2 = findSolution(solutions[i][1], kinematics[i].diagram.joints[1]->pos);
 							if (selectedSolution2 >= 0) {
-								kinematics[i].diagram.joints[3]->pos = solutions[i][1][selectedSolution2].second;
+								kinematics[i].diagram.joints[3]->pos = solutions[i][1][selectedSolution2].moving_point;
 							}
 						}
 					}

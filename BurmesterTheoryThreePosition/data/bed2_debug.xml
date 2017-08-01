@@ -1,0 +1,62 @@
+<design version="1.0" author="Gen Nishida" date="07/24/2017">
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose y="0" theta="0" x="-4.999999999999981"/>
+            <params width="34.99999999999997" height="5"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="5" theta="0" x="30.50000000000001"/>
+            <params width="5" height="-14"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="-8.63020942275921" theta="1.57040050094145" x="-10.60716560802787"/>
+            <params width="20.41747978812375" height="-5.000000000000001"/>
+        </shape>
+        <shape type="polygon" subtype="1">
+            <pose y="6.8" theta="0" x="16.2"/>
+            <point y="0" x="0"/>
+            <point y="0" x="20.1"/>
+            <point y="-15.6" x="20.1"/>
+            <point y="-15.6" x="9.900000000000002"/>
+            <point y="-8.6" x="-0.2999999999999989"/>
+            <point y="-0.09999999999999965" x="-0.2999999999999989"/>
+        </shape>
+        <shape type="polygon" subtype="1">
+            <pose y="8.9" theta="0" x="-10.7"/>
+            <point y="0" x="0"/>
+            <point y="0" x="25.6"/>
+            <point y="-10.7" x="25.6"/>
+            <point y="-17.4" x="13.4"/>
+            <point y="-17.4" x="-1.600000000000001"/>
+            <point y="0.09999999999999965" x="-1.600000000000001"/>
+        </shape>
+    </layer>
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose y="0" theta="0" x="-4.999999999999981"/>
+            <params width="34.99999999999997" height="5"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="19.27869317304613" theta="0.1539668958330291" x="28.53769132971688"/>
+            <params width="5" height="-14"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="5.952095617739894" theta="1.430308891046709" x="-10.73247097793654"/>
+            <params width="20.41747978812375" height="-5.000000000000001"/>
+        </shape>
+    </layer>
+    <layer>
+        <shape type="rectangle" subtype="0">
+            <pose y="0" theta="0" x="-4.999999999999981"/>
+            <params width="34.99999999999997" height="5"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="5.340119603689185" theta="1.56448892677512" x="15.93335043741182"/>
+            <params width="5" height="-14"/>
+        </shape>
+        <shape type="rectangle" subtype="0">
+            <pose y="10.32511496864764" theta="0.002735501521151207" x="-5.002338833707245"/>
+            <params width="20.41747978812375" height="-5.000000000000001"/>
+        </shape>
+    </layer>
+</design>

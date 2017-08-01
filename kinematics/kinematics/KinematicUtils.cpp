@@ -1,6 +1,9 @@
 #include "KinematicUtils.h"
+#include <random>
 
 namespace kinematics {
+
+	std::default_random_engine rnd_generator;
 
 	double genRand() {
 		return rand() / (float(RAND_MAX) + 1);
@@ -8,6 +11,15 @@ namespace kinematics {
 
 	double genRand(double a, double b) {
 		return genRand() * (b - a) + a;
+	}
+
+	double genNormal() {
+		return genNormal(0.0, 1.0);
+	}
+
+	double genNormal(double myu, double sigma) {
+		std::normal_distribution<double> distribution(myu, sigma);
+		return distribution(rnd_generator);
 	}
 
 	/**

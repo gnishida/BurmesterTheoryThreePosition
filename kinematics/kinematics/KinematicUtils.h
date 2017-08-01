@@ -16,6 +16,8 @@ namespace kinematics {
 
 	double genRand();
 	double genRand(double a, double b);
+	double genNormal();
+	double genNormal(double myu, double sigma);
 
 	glm::dvec2 circleCircleIntersection(const glm::dvec2& center1, double radius1, const glm::dvec2& center2, double radius);
 	glm::dvec2 circleCircleIntersection(const glm::dvec2& center1, double radius1, const glm::dvec2& center2, double radius, const glm::dvec2& prev_int);
