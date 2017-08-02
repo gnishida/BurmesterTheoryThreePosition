@@ -7,9 +7,18 @@
 namespace kinematics {
 	typedef dlib::matrix<double, 0, 1> column_vector;
 
-	class obj_function {
+	class SolverForLink {
 	public:
-		obj_function(const std::vector<glm::dmat3x3>& poses);
+		SolverForLink(const std::vector<glm::dmat3x3>& poses);
+		double operator() (const column_vector& arg) const;
+
+	private:
+		std::vector<glm::dmat3x3> poses;
+	};
+
+	class SolverForSlider {
+	public:
+		SolverForSlider(const std::vector<glm::dmat3x3>& poses);
 		double operator() (const column_vector& arg) const;
 
 	private:

@@ -119,12 +119,6 @@
     <ClCompile Include="..\kinematics\kinematics\BBox.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
-    <ClCompile Include="..\kinematics\kinematics\RRRPLinkageChecker.cpp">
-      <Filter>Source Files\kinematics</Filter>
-    </ClCompile>
-    <ClCompile Include="..\kinematics\kinematics\RRRRLinkageChecker.cpp">
-      <Filter>Source Files\kinematics</Filter>
-    </ClCompile>
     <ClCompile Include="..\kinematics\kinematics\LeastSquareSolver.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
@@ -138,6 +132,12 @@
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
     <ClCompile Include="..\kinematics\kinematics\Solution.cpp">
+      <Filter>Source Files\kinematics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\kinematics\kinematics\LinkageSynthesis4R.cpp">
+      <Filter>Source Files\kinematics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\kinematics\kinematics\LinkageSynthesisRRRP.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -225,12 +225,6 @@
     <ClInclude Include="..\kinematics\kinematics\BBox.h">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
-    <ClInclude Include="..\kinematics\kinematics\RRRPLinkageChecker.h">
-      <Filter>Source Files\kinematics</Filter>
-    </ClInclude>
-    <ClInclude Include="..\kinematics\kinematics\RRRRLinkageChecker.h">
-      <Filter>Source Files\kinematics</Filter>
-    </ClInclude>
     <ClInclude Include="..\kinematics\kinematics\LeastSquareSolver.h">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
@@ -238,6 +232,15 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="..\kinematics\kinematics\Solution.h">
+      <Filter>Source Files\kinematics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\LinkageSynthesis4R.h">
+      <Filter>Source Files\kinematics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\LinkageSynthesisRRRP.h">
+      <Filter>Source Files\kinematics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\LinkageSynthesis.h">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
   </ItemGroup>

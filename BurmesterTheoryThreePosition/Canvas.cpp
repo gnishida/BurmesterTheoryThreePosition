@@ -426,20 +426,23 @@ namespace canvas {
 		for (int i = 0; i < body_pts.size(); i++) {
 			time_t start = clock();
 
-			// calculate the circle point curve and center point curve
+			boost::shared_ptr<kinematics::LinkageSynthesis> synthesis;
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::calculateSolutionOf4RLinkage(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
+				synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesis4R());
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::calculateSolutionOfRRRPLinkageForThreePoses(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
+				synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
 			}
 
+			// calculate the circle point curve and center point curve
+			synthesis->calculateSolution(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
+
 			time_t end = clock();
-			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for obtaining " << solutions.size() << " candidates." << std::endl;
+			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for obtaining " << solutions[i].size() << " candidates." << std::endl;
 
 			start = clock();
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::Solution solution = kinematics::findBestSolutionOf4RLinkage(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -460,7 +463,7 @@ namespace canvas {
 				updateDefectFlag(solution.poses, kinematics[0]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::Solution solution = kinematics::findBestSolutionOfRRRPLinkage(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -530,6 +533,21 @@ namespace canvas {
 	void Canvas::updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics) {
 		int linkage_id = selectedJoint.first;
 
+		boost::shared_ptr<kinematics::LinkageSynthesis> synthesis;
+		if (linkage_type == LINKAGE_4R) {
+			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesis4R());
+		}
+		else if (linkage_type == LINKAGE_RRRP) {
+			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
+		}
+
+		linkage_subtype = synthesis->getType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+		orderDefect = synthesis->checkOrderDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+		branchDefect = synthesis->checkBranchDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+		circuitDefect = synthesis->checkCircuitDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+
+
+		/*
 		if (linkage_type == LINKAGE_4R) {
 			linkage_subtype = kinematics::getGrashofType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			orderDefect = kinematics::checkOrderDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
@@ -541,13 +559,22 @@ namespace canvas {
 			branchDefect = kinematics::checkBranchDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 			circuitDefect = kinematics::checkCircuitDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 		}
+		*/
 	}
 
 	void Canvas::onDebug() {
 		if (kinematics.size() >= 0) {
-			kinematics::checkOrderDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
-			kinematics::checkBranchDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
-			kinematics::checkCircuitDefectFor4RLinkage(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
+			boost::shared_ptr<kinematics::LinkageSynthesis> synthesis;
+			if (linkage_type == LINKAGE_4R) {
+				synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesis4R());
+			}
+			else if (linkage_type == LINKAGE_RRRP) {
+				synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
+			}
+
+			synthesis->checkOrderDefect(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
+			synthesis->checkBranchDefect(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
+			synthesis->checkCircuitDefect(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
 		}
 	}
 

@@ -1,12 +1,13 @@
-﻿#include "RRRPLinkageChecker.h"
+﻿#include "LinkageSynthesisRRRP.h"
 #include "KinematicUtils.h"
 #include "Kinematics.h"
 #include "PinJoint.h"
 #include "SliderHinge.h"
 #include "BoundingBox.h"
+#include "LeastSquareSolver.h"
 
 namespace kinematics {
-
+	
 	/**
 	* Calculate solutions of RRRP linkage given three poses.
 	*
@@ -14,10 +15,13 @@ namespace kinematics {
 	* @param solutions1	the output solutions for the driving crank, each of which contains a pair of the center point and the circle point
 	* @param solutions2	the output solutions for the follower, each of which contains a pair of the fixed point and the slider point
 	*/
-	void calculateSolutionOfRRRPLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double sigma, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
+	void LinkageSynthesisRRRP::calculateSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double sigma, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
 		solutions.clear();
 
 		srand(0);
+
+		// calculate the bounding boxe of the valid regions
+		BBox bbox_world = boundingBox(linkage_region_pts);
 
 		// convert the coordinates of the valid regions to the local coordinate system of the first pose
 		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
@@ -27,7 +31,7 @@ namespace kinematics {
 		}
 
 		// calculate the bounding boxes of the valid regions
-		BBox bbox = boundingBox(valid_region);
+		BBox bbox_local = boundingBox(valid_region);
 
 		// calculate the solutions for the driving crank
 		int cnt = 0;
@@ -50,21 +54,29 @@ namespace kinematics {
 
 			// sample a slider crank linkage
 			glm::dvec2 A0, A1;
-			if (sampleLinkForRRRPLinkage(perturbed_poses, linkage_region_pts, valid_region, bbox, A0, A1)) continue;
+			if (poses.size() == 2) {
+				if (!sampleLinkForTwoPoses(perturbed_poses, linkage_region_pts, valid_region, bbox_world, bbox_local, A0, A1)) continue;
+			}
+			else if (poses.size() == 3) {
+				if (!sampleLinkForThreePoses(perturbed_poses, linkage_region_pts, valid_region, bbox_local, A0, A1)) continue;
+			}
+			else {
+				if (!sampleLink(perturbed_poses, linkage_region_pts, valid_region, bbox_world, bbox_local, A0, A1)) continue;
+			}
 
 			glm::dvec2 B0, B1;
-			if (sampleSliderForRRRPLinkage(perturbed_poses, linkage_region_pts, valid_region, bbox, B0, B1)) continue;
+			if (!sampleSlider(perturbed_poses, linkage_region_pts, valid_region, bbox_world, bbox_local, B0, B1)) continue;
 
 			// check hard constraints
 			if (glm::length(A0 - B0) < min_link_length) continue;
 			if (glm::length(A1 - B1) < min_link_length) continue;
 
-			if (rotatable_crank && checkRotatableCrankDefectForRRRPLinkage(A0, B0, A1, B1)) continue;
-			if (avoid_branch_defect && checkBranchDefectForRRRPLinkage(perturbed_poses, A0, B0, A1, B1)) continue;
-			if (checkCircuitDefectForRRRPLinkage(perturbed_poses, A0, B0, A1, B1)) continue;
+			if (rotatable_crank && checkRotatableCrankDefect(A0, B0, A1, B1)) continue;
+			if (avoid_branch_defect && checkBranchDefect(perturbed_poses, A0, B0, A1, B1)) continue;
+			if (checkCircuitDefect(perturbed_poses, A0, B0, A1, B1)) continue;
 
 			// collision check
-			if (checkCollisionForRRRPLinkage(perturbed_poses, A0, B0, A1, B1, fixed_body_pts, body_pts)) continue;
+			if (checkCollision(perturbed_poses, A0, B0, A1, B1, fixed_body_pts, body_pts)) continue;
 
 			solutions.push_back(Solution(A0, A1, B0, B1, pose_error, perturbed_poses));
 			cnt++;
@@ -72,7 +84,65 @@ namespace kinematics {
 		printf("\n");
 	}
 
-	bool sampleLinkForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox, glm::dvec2& A0, glm::dvec2& A1) {
+	bool LinkageSynthesisRRRP::sampleLink(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox_world, const BBox& bbox_local, glm::dvec2& A0, glm::dvec2& A1) {
+		// sample a point within the valid region as the world coordinates of a center point
+		A0 = glm::dvec2(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
+
+		// if the sampled point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+		// sample a point within the valid region as the local coordinate of a circle point
+		glm::dvec2 a(genRand(bbox_local.minPt.x, bbox_local.maxPt.x), genRand(bbox_local.minPt.y, bbox_local.maxPt.y));
+
+		// if the sampled point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts_local, a)) return false;
+
+		// setup the initial parameters for optimization
+		column_vector starting_point(4);
+		column_vector lower_bound(4);
+		column_vector upper_bound(4);
+		starting_point(0, 0) = A0.x;
+		starting_point(1, 0) = A0.y;
+		starting_point(2, 0) = a.x;
+		starting_point(3, 0) = a.y;
+		lower_bound(0, 0) = bbox_world.minPt.x;
+		lower_bound(1, 0) = bbox_world.minPt.y;
+		lower_bound(2, 0) = bbox_local.minPt.x;
+		lower_bound(3, 0) = bbox_local.minPt.y;
+		upper_bound(0, 0) = bbox_world.maxPt.x;
+		upper_bound(1, 0) = bbox_world.maxPt.y;
+		upper_bound(2, 0) = bbox_local.maxPt.x;
+		upper_bound(3, 0) = bbox_local.maxPt.y;
+
+		double min_range = std::numeric_limits<double>::max();
+		for (int i = 0; i < 4; i++) {
+			min_range = std::min(min_range, upper_bound(i, 0) - lower_bound(i, 0));
+		}
+
+		try {
+			find_min_bobyqa(SolverForLink(poses), starting_point, 14, lower_bound, upper_bound, min_range * 0.19, min_range * 0.0001, 1000);
+
+			A0.x = starting_point(0, 0);
+			A0.y = starting_point(1, 0);
+			a.x = starting_point(2, 0);
+			a.y = starting_point(3, 0);
+
+			// if the center point is outside the valid region, discard it.
+			if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+			A1 = glm::dvec2(poses[0] * glm::dvec3(a, 1));
+
+			// if the moving point is outside the valid region, discard it.
+			if (!withinPolygon(linkage_region_pts, A1)) return false;
+
+			return true;
+		}
+		catch (std::exception& e) {
+			//std::cout << e.what() << std::endl;
+		}
+	}
+
+	bool LinkageSynthesisRRRP::sampleLinkForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox, glm::dvec2& A0, glm::dvec2& A1) {
 		// sample a point within the valid region as the local coordinate of a circle point
 		glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
 
@@ -84,7 +154,7 @@ namespace kinematics {
 		glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
 
 		try {
-			glm::dvec2 A0 = circleCenterFromThreePoints(A1, A2, A3);
+			A0 = circleCenterFromThreePoints(A1, A2, A3);
 
 			// if the center point is outside the valid region, discard it.
 			if (!withinPolygon(linkage_region_pts, A0)) return false;
@@ -98,46 +168,119 @@ namespace kinematics {
 		}
 	}
 
-	bool sampleSliderForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox, glm::dvec2& A0, glm::dvec2& A1) {
+	bool LinkageSynthesisRRRP::sampleLinkForTwoPoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox_world, const BBox& bbox_local, glm::dvec2& A0, glm::dvec2& A1) {
 		// sample a point within the valid region as the local coordinate of a circle point
-		glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
+		glm::dvec2 a(genRand(bbox_local.minPt.x, bbox_local.maxPt.x), genRand(bbox_local.minPt.y, bbox_local.maxPt.y));
 
 		// if the sampled point is outside the valid region, discard it.
 		if (!withinPolygon(linkage_region_pts_local, a)) return false;
 
 		A1 = glm::dvec2(poses[0] * glm::dvec3(a, 1));
 		glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
-		glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
+
+		// sample a poing within the region as the fixed point
+		A0 = glm::dvec2(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
+
+		// if the sampled point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+		glm::dvec2 M = (A1 + A2) * 0.5;
+		glm::dvec2 v = A1 - A2;
+		v /= glm::length(v);
+		glm::dvec2 h(-v.y, v.x);
+
+		A0 = M + h * glm::dot(A0 - M, h);
+
+		// if the center point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+		return true;
+	}
+
+	bool LinkageSynthesisRRRP::sampleSlider(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox_world, const BBox& bbox_local, glm::dvec2& A0, glm::dvec2& A1) {
+		// sample a point within the valid region as the local coordinate of a circle point
+		glm::dvec2 a(genRand(bbox_local.minPt.x, bbox_local.maxPt.x), genRand(bbox_local.minPt.y, bbox_local.maxPt.y));
+
+		// if the sampled point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts_local, a)) return false;
+
+
+
+
+
+		// setup the initial parameters for optimization
+		column_vector starting_point(2);
+		column_vector lower_bound(2);
+		column_vector upper_bound(2);
+		starting_point(0, 0) = a.x;
+		starting_point(1, 0) = a.y;
+		lower_bound(0, 0) = bbox_local.minPt.x;
+		lower_bound(1, 0) = bbox_local.minPt.y;
+		upper_bound(0, 0) = bbox_local.maxPt.x;
+		upper_bound(1, 0) = bbox_local.maxPt.y;
+
+		double min_range = std::numeric_limits<double>::max();
+		for (int i = 0; i < 2; i++) {
+			min_range = std::min(min_range, upper_bound(i, 0) - lower_bound(i, 0));
+		}
+
+		try {
+			find_min_bobyqa(SolverForSlider(poses), starting_point, 5, lower_bound, upper_bound, min_range * 0.19, min_range * 0.0001, 1000);
+
+			a.x = starting_point(0, 0);
+			a.y = starting_point(1, 0);
+
+			A1 = glm::dvec2(poses[0] * glm::dvec3(a, 1));
+
+			// if the moving point is outside the valid region, discard it.
+			if (!withinPolygon(linkage_region_pts, A1)) return false;
+		}
+		catch (std::exception& e) {
+			//std::cout << e.what() << std::endl;
+		}
+
+		glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
 
 		glm::dvec2 v1 = A2 - A1;
 		double l1 = glm::length(v1);
 		v1 /= l1;
-		glm::dvec2 v2 = A3 - A1;
-		double l2 = glm::length(v2);
-		v2 /= l2;
 
-		// check the order of A1, A2, and A3, and the collinearity of A1, A2, and A3
-		if (glm::dot(v1, v2) > 0 && l2 > l1 &&  abs(crossProduct(v1, v2)) < 0.01) {
-			for (int i = 0; i < 100; i++) {
-				glm::dvec2 A0 = A1 + v1 * (double)(i - 50);
-				if (A0 == A1) continue;
+		for (int i = 2; i < poses.size(); i++) {
+			glm::dvec2 A(poses[i] * glm::dvec3(a, 1));
+			glm::dvec2 v = A - A1;
+			double l = glm::length(v);
+			v /= l;
 
-				// if the center point is outside the valid region, discard it.
-				if (!withinPolygon(linkage_region_pts, A0)) continue;
+			// check the collinearity
+			//if (abs(crossProduct(v1, v)) > 0.01) return false;
 
-				return true;
-			}
+			// check the order
+			if (glm::dot(v1, v) <= 0) return false;
+			if (l <= l1) return false;
 		}
+
+		// sample a point within the region as the fixed point
+		A0 = glm::dvec2(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
+
+		// if the sampled point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+		A0 = A1 + v1 * glm::dot(A0 - A1, v1);
+
+		// if the center point is outside the valid region, discard it.
+		if (!withinPolygon(linkage_region_pts, A0)) return false;
+
+		return true;
 	}
 
-	Solution findBestSolutionOfRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double pose_error_weight, double smoothness_weight) {
+	Solution LinkageSynthesisRRRP::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double pose_error_weight, double smoothness_weight) {
 		// select the best solution based on the trajectory
 		if (solutions.size() > 0) {
 			double min_cost = std::numeric_limits<double>::max();
 			int best = -1;
 			for (int i = 0; i < solutions.size(); i++) {
 				double pose_error = solutions[i].pose_error;
-				double tortuosity = tortuosityOfTrajectoryForRRRPLinkage(poses, solutions[i].fixed_point[0], solutions[i].fixed_point[1], solutions[i].moving_point[0], solutions[i].moving_point[1], body_pts);
+				double tortuosity = tortuosityOfTrajectory(poses, solutions[i].fixed_point[0], solutions[i].fixed_point[1], solutions[i].moving_point[0], solutions[i].moving_point[1], body_pts);
 				double cost = pose_error * pose_error_weight + tortuosity * smoothness_weight;
 				if (cost < min_cost) {
 					min_cost = cost;
@@ -160,7 +303,7 @@ namespace kinematics {
 	* 2 -- pi-rocker
 	* 3 -- rocker
 	*/
-	int getRRRPType(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+	int LinkageSynthesisRRRP::getType(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
 		// obtain the vectors, u (x axis) and v (y axis)
 		glm::dvec2 u = p3 - p1;
 		u /= glm::length(u);
@@ -195,8 +338,8 @@ namespace kinematics {
 	* Check if the linkage has rotatable crank defect.
 	* If the crank is not fully rotatable, true is returned.
 	*/
-	bool checkRotatableCrankDefectForRRRPLinkage(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
-		int linkage_type = getRRRPType(p0, p1, p2, p3);
+	bool LinkageSynthesisRRRP::checkRotatableCrankDefect(const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
+		int linkage_type = getType(p0, p1, p2, p3);
 
 		if (linkage_type == 0) {
 			return false;
@@ -206,8 +349,12 @@ namespace kinematics {
 		}
 	}
 
-	bool checkBranchDefectForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
-		int type = getRRRPType(p0, p1, p2, p3);
+	bool LinkageSynthesisRRRP::checkOrderDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug) {
+		return false;
+	}
+
+	bool LinkageSynthesisRRRP::checkBranchDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug) {
+		int type = getType(p0, p1, p2, p3);
 
 		// rotatable crank always does not have a branch defect
 		if (type == 0) return false;
@@ -246,8 +393,8 @@ namespace kinematics {
 		return false;
 	}
 
-	bool checkCircuitDefectForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3) {
-		int type = getRRRPType(p0, p1, p2, p3);
+	bool LinkageSynthesisRRRP::checkCircuitDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug) {
+		int type = getType(p0, p1, p2, p3);
 
 		// 0-rocker and pi-rocker always do not have a branch defect
 		if (type == 1 || type == 2) return false;
@@ -297,7 +444,7 @@ namespace kinematics {
 		return false;
 	}
 
-	bool checkCollisionForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
+	bool LinkageSynthesisRRRP::checkCollision(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
 		kinematics::Kinematics kinematics(0.02);
 
 		// construct a linkage
@@ -447,7 +594,7 @@ namespace kinematics {
 		return false;
 	}
 
-	double tortuosityOfTrajectoryForRRRPLinkage(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<glm::dvec2>& body_pts) {
+	double LinkageSynthesisRRRP::tortuosityOfTrajectory(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, const std::vector<glm::dvec2>& body_pts) {
 		// calculate the local coordinates of the body points
 		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
 		std::vector<glm::dvec2> body_pts_local(body_pts.size());
