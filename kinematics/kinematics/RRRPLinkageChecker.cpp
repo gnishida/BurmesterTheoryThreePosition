@@ -148,7 +148,7 @@ namespace kinematics {
 			return solutions[best];
 		}
 		else {
-			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0);
+			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0, poses);
 		}
 	}
 

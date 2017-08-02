@@ -145,48 +145,6 @@ namespace kinematics {
 		}
 	}
 
-#if 0
-	void calculateSolutionOf4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, double sigma, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
-		solutions.clear();
-
-		srand(0);
-
-		// convert the coordinates of the valid regions to the local coordinate system of the first pose
-		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
-		std::vector<glm::dvec2> valid_region(linkage_region_pts.size());
-		for (int i = 0; i < linkage_region_pts.size(); i++) {
-			valid_region[i] = glm::dvec2(inv_pose0 * glm::dvec3(linkage_region_pts[i], 1));
-		}
-
-		// calculate the bounding boxes of the valid regions
-		BBox bbox_local = boundingBox(valid_region);
-
-		int cnt = 0;
-		for (int iter = 0; iter < num_samples * 100 && cnt < num_samples; iter++) {
-			// perturbe the poses a little
-			// HACK: 本来なら、bodyの座標を関数に渡し、関数側でpertubeしてからposeを計算すべきか？
-			//       とりあえず、回転はperturbしていない。
-			std::vector<glm::dmat3x3> perturbed_poses = poses;
-			double pose_error = 0.0;
-			for (int i = 1; i < poses.size() - 1; i++) {
-				double e1 = genNormal(0, sigma);
-				perturbed_poses[i][2][0] += e1;
-				double e2 = genNormal(0, sigma);
-				perturbed_poses[i][2][1] += e2;
-				pose_error += e1 * e1 + e2 * e2;
-			}
-
-			glm::dvec2 A0, A1;
-			if (!sampleLinkFor4RLinkageForThreePoses(poses, linkage_region_pts, valid_region, bbox_local, A0, A1)) continue;
-
-			glm::dvec2 B0, B1;
-			if (!sampleLinkFor4RLinkageForThreePoses(poses, linkage_region_pts, valid_region, bbox_local, B0, B1)) continue;
-
-			solutions.push_back(Solution(A0, A1, B0, B1, pose_error));
-		}
-	}
-#endif
-
 	bool sampleLinkFor4RLinkageForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox, glm::dvec2& A0, glm::dvec2& A1) {
 		// sample a point within the valid region as the local coordinate of a circle point
 		glm::dvec2 a(genRand(bbox.minPt.x, bbox.maxPt.x), genRand(bbox.minPt.y, bbox.maxPt.y));
@@ -199,7 +157,7 @@ namespace kinematics {
 		glm::dvec2 A3(poses[2] * glm::dvec3(a, 1));
 
 		try {
-			glm::dvec2 A0 = circleCenterFromThreePoints(A1, A2, A3);
+			A0 = circleCenterFromThreePoints(A1, A2, A3);
 
 			// if the center point is outside the valid region, discard it.
 			if (!withinPolygon(linkage_region_pts, A0)) return false;
@@ -231,7 +189,7 @@ namespace kinematics {
 			return solutions[best];
 		}
 		else {
-			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0);
+			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0, poses);
 		}
 	}
 
