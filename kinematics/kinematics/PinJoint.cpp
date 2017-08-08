@@ -21,6 +21,21 @@ namespace kinematics {
 
 	void PinJoint::draw(QPainter& painter, const QPointF& origin, float scale) {
 		painter.save();
+
+		// if this is a fixed joint, draw a base
+		if (ground) {
+			painter.setPen(QPen(QColor(0, 0, 0), 1));
+			painter.setBrush(QBrush(QColor(255, 255, 255, 0)));
+			QPolygonF poly;
+			for (int i = 0; i <= 10; i++) {
+				double theta = M_PI * i / 10;
+				poly.push_back(QPointF(origin.x() + pos.x * scale + 8 * cos(theta), origin.y() - pos.y * scale - 8 * sin(theta)));
+			}
+			poly.push_back(QPointF(origin.x() + pos.x * scale - 8, origin.y() - pos.y * scale + 15));
+			poly.push_back(QPointF(origin.x() + pos.x * scale + 8, origin.y() - pos.y * scale + 15));
+			painter.drawPolygon(poly);
+		}
+
 		painter.setPen(QPen(QColor(0, 0, 0), 1));
 		painter.setBrush(QBrush(QColor(255, 255, 255)));
 		painter.drawEllipse(QPoint(origin.x() + pos.x * scale, origin.y() - pos.y * scale), 5, 5);

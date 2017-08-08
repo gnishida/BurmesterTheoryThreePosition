@@ -36,7 +36,7 @@ namespace canvas {
 		glm::dmat3x3 getModelMatrix() const;
 		virtual void addPoint(const glm::dvec2& point) = 0;
 		virtual std::vector<glm::dvec2> getPoints() const = 0;
-		virtual void updateByNewPoint(const glm::dvec2& point) = 0;
+		virtual void updateByNewPoint(const glm::dvec2& point, bool shiftPressed) = 0;
 		void select();
 		void unselect();
 		bool isSelected() const;

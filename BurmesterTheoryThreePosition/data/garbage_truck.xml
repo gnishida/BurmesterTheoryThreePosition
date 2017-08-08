@@ -88,6 +88,16 @@
             <point y="0.3000000000000007" x="10.6"/>
             <point y="0.3000000000000007" x="0"/>
         </shape>
+        <shape type="polygon" subtype="1">
+            <pose y="4.5" x="29" theta="0"/>
+            <point y="0" x="0"/>
+            <point y="-1.7" x="1.800000000000001"/>
+            <point y="-3.6" x="3.600000000000001"/>
+            <point y="-3.6" x="25.7"/>
+            <point y="6.4" x="25.8"/>
+            <point y="14.5" x="10.2"/>
+            <point y="14.5" x="0.3999999999999986"/>
+        </shape>
     </layer>
     <layer>
         <shape type="rectangle" subtype="0">
@@ -127,6 +137,16 @@
             <point y="-7.4" x="10.6"/>
             <point y="0.3000000000000007" x="10.6"/>
             <point y="0.3000000000000007" x="0"/>
+        </shape>
+        <shape type="polygon" subtype="1">
+            <pose y="4.5" x="29" theta="0"/>
+            <point y="0" x="0"/>
+            <point y="-1.7" x="1.800000000000001"/>
+            <point y="-3.6" x="3.600000000000001"/>
+            <point y="-3.6" x="25.7"/>
+            <point y="6.4" x="25.8"/>
+            <point y="14.5" x="10.2"/>
+            <point y="14.5" x="0.3999999999999986"/>
         </shape>
     </layer>
 </design>

@@ -94,7 +94,7 @@ namespace canvas {
 		void calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight);
 		int findSolution(const std::vector<kinematics::Solution>& solutions, const glm::dvec2& pt, int joint_id);
 		void updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics);
-		void onDebug();
+		//void onDebug();
 
 	public slots:
 		void animation_update();

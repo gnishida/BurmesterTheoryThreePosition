@@ -124,9 +124,14 @@ namespace canvas {
 		return points;
 	}
 
-	void Rectangle::updateByNewPoint(const glm::dvec2& point) {
+	void Rectangle::updateByNewPoint(const glm::dvec2& point, bool shiftPressed) {
 		width = point.x;
 		height = point.y;
+		if (shiftPressed) {
+			width = std::max(width, height);
+			if (height * width >= 0) height = width;
+			else height = -width;
+		}
 	}
 
 	/**

@@ -22,11 +22,11 @@ namespace canvas {
 		ctrlPressed = false;
 		shiftPressed = false;
 
-		origin = QPoint(0, 400);
+		origin = QPoint(width() * 0.5, height() * 0.5);
 		scale = 10.0;
 
 		mode = MODE_SELECT;
-		layers.resize(3);
+		layers.resize(2);
 		layer_id = 0;
 		operation.reset();
 		current_shape.reset();
@@ -50,6 +50,9 @@ namespace canvas {
 			layers[i].clear();
 		}
 		selected_shape.reset();
+
+		// select 1st layer
+		setLayer(0);
 
 		// clear the kinematic data
 		kinematics.clear();
@@ -192,6 +195,9 @@ namespace canvas {
 	void Canvas::addLayer() {
 		layers.push_back(layers.back().clone());
 		setLayer(layers.size() - 1);
+
+		// change the mode to MOVE
+		setMode(MODE_MOVE);
 	}
 
 	void Canvas::insertLayer() {
@@ -200,6 +206,9 @@ namespace canvas {
 	}
 
 	void Canvas::deleteLayer() {
+		// we assume that there must be at least two layers.
+		if (layers.size() <= 2) return;
+
 		layers.erase(layers.begin() + layer_id);
 		if (layer_id >= layers.size()) {
 			layer_id--;
@@ -211,6 +220,10 @@ namespace canvas {
 		layers[this->layer_id].unselectAll();
 		this->layer_id = layer_id;
 		current_shape.reset();
+
+		// if the mode is not the design mode, change it forcefully to the MOVE mode
+		if (mode == MODE_KINEMATICS) setMode(MODE_MOVE);
+
 		update();
 	}
 
@@ -379,6 +392,9 @@ namespace canvas {
 	}
 
 	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight) {
+		// change the mode to kinematics
+		setMode(MODE_KINEMATICS);
+
 		time_t start = clock();
 
 		this->linkage_type = linkage_type;
@@ -417,6 +433,18 @@ namespace canvas {
 			}
 			else if (subtype == Shape::TYPE_LINKAGE_REGION) {
 				linkage_region_pts.push_back(layers[0].shapes[i]->getPoints());
+			}
+		}
+
+		// if the linkage region is not specified, use a large enough region as default
+		if (linkage_region_pts.size() < poses.size()) {
+			int num_linkage_regions = linkage_region_pts.size();
+			linkage_region_pts.resize(poses.size());
+			for (int i = num_linkage_regions; i < poses.size(); i++) {
+				linkage_region_pts[i].push_back(glm::dvec2(-40, -40));
+				linkage_region_pts[i].push_back(glm::dvec2(-40, 40));
+				linkage_region_pts[i].push_back(glm::dvec2(40, 40));
+				linkage_region_pts[i].push_back(glm::dvec2(40, -40));
 			}
 		}
 
@@ -545,23 +573,9 @@ namespace canvas {
 		orderDefect = synthesis->checkOrderDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 		branchDefect = synthesis->checkBranchDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
 		circuitDefect = synthesis->checkCircuitDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-
-
-		/*
-		if (linkage_type == LINKAGE_4R) {
-			linkage_subtype = kinematics::getGrashofType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-			orderDefect = kinematics::checkOrderDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-			branchDefect = kinematics::checkBranchDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-			circuitDefect = kinematics::checkCircuitDefectFor4RLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-		}
-		else if (linkage_type == LINKAGE_RRRP) {
-			linkage_subtype = kinematics::getRRRPType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-			branchDefect = kinematics::checkBranchDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-			circuitDefect = kinematics::checkCircuitDefectForRRRPLinkage(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-		}
-		*/
 	}
 
+	/*
 	void Canvas::onDebug() {
 		if (kinematics.size() >= 0) {
 			boost::shared_ptr<kinematics::LinkageSynthesis> synthesis;
@@ -577,6 +591,7 @@ namespace canvas {
 			synthesis->checkCircuitDefect(poses[0], kinematics[0].diagram.joints[0]->pos, kinematics[0].diagram.joints[1]->pos, kinematics[0].diagram.joints[2]->pos, kinematics[0].diagram.joints[3]->pos, true);
 		}
 	}
+	*/
 
 	void Canvas::animation_update() {
 		for (int i = 0; i < kinematics.size(); i++) {
@@ -598,6 +613,15 @@ namespace canvas {
 	void Canvas::paintEvent(QPaintEvent *e) {
 		QPainter painter(this);
 		painter.fillRect(0, 0, width(), height(), QColor(255, 255, 255));
+
+		// draw grid
+		painter.save();
+		painter.setPen(QPen(QColor(224, 224, 224), 1));
+		for (int i = -2000; i <= 2000; i++) {
+			painter.drawLine(origin.x() + i * 5 * scale, -10000 * scale + origin.y(), origin.x() + i * 5 * scale, 10000 * scale + origin.y());
+			painter.drawLine(-10000 * scale + origin.x(), origin.y() + i * 5 * scale, 10000 * scale + origin.x(), origin.y() + i * 5 * scale);
+		}
+		painter.restore();
 
 		if (mode != MODE_KINEMATICS) {
 			// render unselected layers as background
@@ -721,9 +745,9 @@ namespace canvas {
 
 		// draw axes
 		painter.save();
-		painter.setPen(QPen(QColor(128, 128, 128), 1, Qt::DashLine));
-		painter.drawLine(-10000 * scale + origin.x(), origin.y(), 10000 * scale + origin.y(), origin.y());
-		painter.drawLine(origin.x(), 10000 * scale + origin.y(), origin.x(), -10000 * scale + origin.y());
+		painter.setPen(QPen(QColor(128, 128, 128), 1));
+		painter.drawLine(-10000 * scale + origin.x(), origin.y(), 10000 * scale + origin.x(), origin.y());
+		painter.drawLine(origin.x(), -10000 * scale + origin.y(), origin.x(), 10000 * scale + origin.y());
 		painter.restore();
 	}
 
@@ -980,7 +1004,7 @@ namespace canvas {
 			}
 			else if (mode == MODE_RECTANGLE || mode == MODE_CIRCLE || mode == MODE_POLYGON || mode == MODE_LINKAGE_REGION) {
 				if (current_shape) {
-					current_shape->updateByNewPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())));
+					current_shape->updateByNewPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())), shiftPressed);
 					update();
 				}
 			}
@@ -1084,12 +1108,24 @@ namespace canvas {
 	}
 
 	void Canvas::wheelEvent(QWheelEvent* e) {
-		scale += e->delta() * 0.01;
-		scale = std::min(std::max(0.1, scale), 1000.0);
+		double new_scale = scale + e->delta() * 0.01;
+		new_scale = std::min(std::max(0.1, new_scale), 1000.0);
+
+		// adjust the origin in order to keep the screen center
+		glm::dvec2 p = screenToWorldCoordinates(width() * 0.5, height() * 0.5);
+		origin.setX(width() * 0.5 - p.x * new_scale);
+		origin.setY(height() * 0.5 + p.y * new_scale);
+		
+		scale = new_scale;
+
 		update();
 	}
 
 	void Canvas::resizeEvent(QResizeEvent *e) {
+		// adjust the origin in order to keep the screen center
+		glm::dvec2 p = screenToWorldCoordinates(e->oldSize().width() * 0.5, e->oldSize().height() * 0.5);
+		origin.setX(e->size().width() * 0.5 - p.x * scale);
+		origin.setY(e->size().height() * 0.5 + p.y * scale);
 	}
 
 	void Canvas::keyPressEvent(QKeyEvent* e) {
@@ -1107,9 +1143,13 @@ namespace canvas {
 		case Qt::Key_Escape:
 			break;
 		case Qt::Key_Space:
-			break;
-		case Qt::Key_Delete:
-
+			// start/stop the animation
+			if (animation_timer == NULL) {
+				run();
+			}
+			else {
+				stop();
+			}
 			break;
 		}
 

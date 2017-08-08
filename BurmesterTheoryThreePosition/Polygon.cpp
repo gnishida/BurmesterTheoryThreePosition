@@ -118,7 +118,8 @@ namespace canvas {
 	}
 
 	void Polygon::addPoint(const glm::dvec2& point) {
-		points.push_back(point);
+		//points.push_back(point);
+		points.push_back(current_point);
 		current_point = point;
 	}
 
@@ -133,8 +134,16 @@ namespace canvas {
 		return pts;
 	}
 
-	void Polygon::updateByNewPoint(const glm::dvec2& point) {
+	void Polygon::updateByNewPoint(const glm::dvec2& point, bool shiftPressed) {
 		current_point = point;
+		if (shiftPressed) {
+			if (abs(point.x - points.back().x) > abs(point.y - points.back().y)) {
+				current_point.y = points.back().y;
+			}
+			else {
+				current_point.x = points.back().x;
+			}
+		}
 	}
 
 	/**

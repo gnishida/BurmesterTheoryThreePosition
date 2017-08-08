@@ -87,7 +87,7 @@ public:
 
     void retranslateUi(QDialog *LinkageSynthesisOptionDialog)
     {
-        LinkageSynthesisOptionDialog->setWindowTitle(QApplication::translate("LinkageSynthesisOptionDialog", "LinkageSynthesisOptionDialog", 0));
+        LinkageSynthesisOptionDialog->setWindowTitle(QApplication::translate("LinkageSynthesisOptionDialog", "Synthesis Options", 0));
         label->setText(QApplication::translate("LinkageSynthesisOptionDialog", "# samples:", 0));
         label_2->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for pose error:", 0));
         checkBoxAvoidBranchDefect->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Avoid branch defect", 0));

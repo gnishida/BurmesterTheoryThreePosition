@@ -70,7 +70,6 @@ public:
     QMenu *menuMode;
     QMenu *menuLayer;
     QMenu *menuEdit;
-    QMenu *menuTool_2;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
 
@@ -182,8 +181,6 @@ public:
         menuLayer->setObjectName(QStringLiteral("menuLayer"));
         menuEdit = new QMenu(menuBar);
         menuEdit->setObjectName(QStringLiteral("menuEdit"));
-        menuTool_2 = new QMenu(menuBar);
-        menuTool_2->setObjectName(QStringLiteral("menuTool_2"));
         MainWindowClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(MainWindowClass);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
@@ -197,7 +194,6 @@ public:
         menuBar->addAction(menuMode->menuAction());
         menuBar->addAction(menuLayer->menuAction());
         menuBar->addAction(menuTool->menuAction());
-        menuBar->addAction(menuTool_2->menuAction());
         menuFile->addAction(actionNew);
         menuFile->addAction(actionOpen);
         menuFile->addAction(actionSave);
@@ -236,7 +232,6 @@ public:
         menuEdit->addAction(actionSelectAll);
         menuEdit->addSeparator();
         menuEdit->addAction(actionCircularRepeat);
-        menuTool_2->addAction(actionDebug);
 
         retranslateUi(MainWindowClass);
 
@@ -245,7 +240,7 @@ public:
 
     void retranslateUi(QMainWindow *MainWindowClass)
     {
-        MainWindowClass->setWindowTitle(QApplication::translate("MainWindowClass", "Burmester Theory Three Positions", 0));
+        MainWindowClass->setWindowTitle(QApplication::translate("MainWindowClass", "Dynamic Object Design", 0));
         actionExit->setText(QApplication::translate("MainWindowClass", "Exit", 0));
         actionRun->setText(QApplication::translate("MainWindowClass", "Run", 0));
         actionStop->setText(QApplication::translate("MainWindowClass", "Stop", 0));
@@ -299,7 +294,6 @@ public:
         menuMode->setTitle(QApplication::translate("MainWindowClass", "Mode", 0));
         menuLayer->setTitle(QApplication::translate("MainWindowClass", "Layer", 0));
         menuEdit->setTitle(QApplication::translate("MainWindowClass", "Edit", 0));
-        menuTool_2->setTitle(QApplication::translate("MainWindowClass", "Tool", 0));
     } // retranslateUi
 
 };

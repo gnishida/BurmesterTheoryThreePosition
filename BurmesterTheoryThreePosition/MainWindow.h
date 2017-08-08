@@ -45,7 +45,6 @@ public slots:
 	void onStepForward();
 	void onStepBackward();
 	void onCollisionCheck();
-	void onDebug();
 	void keyPressEvent(QKeyEvent* e);
 	void keyReleaseEvent(QKeyEvent* e);
 };

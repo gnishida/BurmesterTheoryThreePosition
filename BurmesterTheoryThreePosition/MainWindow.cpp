@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	ui.actionMove->setChecked(true);
 	
 	groupLayer = new QActionGroup(this);
-	initLayerMenu(3);
+	initLayerMenu(2);
 
 	ui.actionCollisionCheck->setChecked(canvas->collision_check);
 
@@ -50,7 +50,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionStepForward, SIGNAL(triggered()), this, SLOT(onStepForward()));
 	connect(ui.actionStepBackward, SIGNAL(triggered()), this, SLOT(onStepBackward()));
 	connect(ui.actionCollisionCheck, SIGNAL(triggered()), this, SLOT(onCollisionCheck()));
-	connect(ui.actionDebug, SIGNAL(triggered()), this, SLOT(onDebug()));
 }
 
 MainWindow::~MainWindow() {
@@ -76,7 +75,7 @@ void MainWindow::initLayerMenu(int num_layers) {
 
 void MainWindow::onNew() {
 	canvas->clear();
-	setWindowTitle("Burmester Theory Three Positions");
+	setWindowTitle("Dynamic Object Design");
 }
 
 void MainWindow::onOpen() {
@@ -84,7 +83,7 @@ void MainWindow::onOpen() {
 	if (filename.isEmpty()) return;
 
 	canvas->open(filename);
-	setWindowTitle("Burmester Theory Three Positions - " + filename);
+	setWindowTitle("Dynamic Object Design - " + QFileInfo(filename).fileName());
 }
 
 void MainWindow::onSave() {
@@ -92,6 +91,7 @@ void MainWindow::onSave() {
 	if (filename.isEmpty()) return;
 
 	canvas->save(filename);
+	setWindowTitle("Dynamic Object Design - " + QFileInfo(filename).fileName());
 }
 
 void MainWindow::onUndo() {
@@ -232,10 +232,6 @@ void MainWindow::onStepBackward() {
 
 void MainWindow::onCollisionCheck() {
 	canvas->collision_check = ui.actionCollisionCheck->isChecked();
-}
-
-void MainWindow::onDebug() {
-	canvas->onDebug();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* e) {
