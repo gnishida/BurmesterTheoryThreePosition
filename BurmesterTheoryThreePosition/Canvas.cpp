@@ -195,17 +195,11 @@ namespace canvas {
 	void Canvas::addLayer() {
 		layers.push_back(layers.back().clone());
 		setLayer(layers.size() - 1);
-
-		// change the mode to SELECT
-		setMode(MODE_SELECT);
 	}
 
 	void Canvas::insertLayer() {
 		layers.insert(layers.begin() + layer_id, layers[layer_id].clone());
 		setLayer(layer_id);
-
-		// change the mode to SELECT
-		setMode(MODE_SELECT);
 	}
 
 	void Canvas::deleteLayer() {
@@ -217,15 +211,15 @@ namespace canvas {
 			layer_id--;
 		}
 		setLayer(layer_id);
-
-		// change the mode to SELECT
-		setMode(MODE_SELECT);
 	}
 
 	void Canvas::setLayer(int layer_id) {
 		layers[this->layer_id].unselectAll();
 		this->layer_id = layer_id;
 		current_shape.reset();
+
+		// change the mode to SELECT
+		setMode(MODE_SELECT);
 
 		update();
 	}
@@ -395,6 +389,8 @@ namespace canvas {
 	}
 
 	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight, double size_weight) {
+		mainWin->ui.statusBar->showMessage("Please wait for a moment...");
+		
 		// change the mode to kinematics
 		setMode(MODE_KINEMATICS);
 		mainWin->ui.actionKinematics->setChecked(true);
@@ -468,6 +464,16 @@ namespace canvas {
 
 			// calculate the circle point curve and center point curve
 			synthesis->calculateSolution(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
+
+			if (solutions[i].size() == 0) {
+				mainWin->ui.statusBar->showMessage("No candidate was found.");
+			}
+			else if (solutions[i].size() == 0) {
+				mainWin->ui.statusBar->showMessage("1 candidate was found.");
+			}
+			else {
+				mainWin->ui.statusBar->showMessage(QString("%1 candidates were found.").arg(solutions[i].size()));
+			}
 
 			time_t end = clock();
 			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for obtaining " << solutions[i].size() << " candidates." << std::endl;
