@@ -397,6 +397,7 @@ namespace canvas {
 	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight) {
 		// change the mode to kinematics
 		setMode(MODE_KINEMATICS);
+		mainWin->ui.actionKinematics->setChecked(true);
 
 		time_t start = clock();
 
@@ -1101,7 +1102,7 @@ namespace canvas {
 				history.push(layers);
 				current_shape.reset();
 				operation.reset();
-				mainWin->ui.actionMove->setChecked(true);
+				mainWin->ui.actionSelect->setChecked(true);
 			}
 		}
 

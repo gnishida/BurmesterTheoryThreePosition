@@ -34,7 +34,7 @@ public:
     QAction *actionOpen;
     QAction *actionShowCenterPointCurve;
     QAction *actionShowCirclePointCurve;
-    QAction *actionMove;
+    QAction *actionSelect;
     QAction *actionRectangle;
     QAction *actionPolygon;
     QAction *actionLayer1;
@@ -96,9 +96,9 @@ public:
         actionShowCirclePointCurve = new QAction(MainWindowClass);
         actionShowCirclePointCurve->setObjectName(QStringLiteral("actionShowCirclePointCurve"));
         actionShowCirclePointCurve->setCheckable(true);
-        actionMove = new QAction(MainWindowClass);
-        actionMove->setObjectName(QStringLiteral("actionMove"));
-        actionMove->setCheckable(true);
+        actionSelect = new QAction(MainWindowClass);
+        actionSelect->setObjectName(QStringLiteral("actionSelect"));
+        actionSelect->setCheckable(true);
         actionRectangle = new QAction(MainWindowClass);
         actionRectangle->setObjectName(QStringLiteral("actionRectangle"));
         actionRectangle->setCheckable(true);
@@ -210,7 +210,7 @@ public:
         menuTool->addAction(actionStepBackward);
         menuTool->addSeparator();
         menuTool->addAction(actionCollisionCheck);
-        menuMode->addAction(actionMove);
+        menuMode->addAction(actionSelect);
         menuMode->addAction(actionRectangle);
         menuMode->addAction(actionCircle);
         menuMode->addAction(actionPolygon);
@@ -252,7 +252,7 @@ public:
         actionOpen->setShortcut(QApplication::translate("MainWindowClass", "Ctrl+O", 0));
         actionShowCenterPointCurve->setText(QApplication::translate("MainWindowClass", "Show Center Point Curve", 0));
         actionShowCirclePointCurve->setText(QApplication::translate("MainWindowClass", "Show Circle Point Curve", 0));
-        actionMove->setText(QApplication::translate("MainWindowClass", "Move", 0));
+        actionSelect->setText(QApplication::translate("MainWindowClass", "Select", 0));
         actionRectangle->setText(QApplication::translate("MainWindowClass", "Rectangle", 0));
         actionPolygon->setText(QApplication::translate("MainWindowClass", "Polygon", 0));
         actionLayer1->setText(QApplication::translate("MainWindowClass", "Layer 1", 0));

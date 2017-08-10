@@ -9,13 +9,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	setCentralWidget(canvas);
 
 	QActionGroup* groupMode = new QActionGroup(this);
-	groupMode->addAction(ui.actionMove);
+	groupMode->addAction(ui.actionSelect);
 	groupMode->addAction(ui.actionRectangle);
 	groupMode->addAction(ui.actionCircle);
 	groupMode->addAction(ui.actionPolygon);
 	groupMode->addAction(ui.actionLinkageRegion);
 	groupMode->addAction(ui.actionKinematics);
-	ui.actionMove->setChecked(true);
+	ui.actionSelect->setChecked(true);
 	
 	groupLayer = new QActionGroup(this);
 	initLayerMenu(2);
@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionDelete, SIGNAL(triggered()), this, SLOT(onDelete()));
 	connect(ui.actionSelectAll, SIGNAL(triggered()), this, SLOT(onSelectAll()));
 	connect(ui.actionCircularRepeat, SIGNAL(triggered()), this, SLOT(onCircularRepeat()));
-	connect(ui.actionMove, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionSelect, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionRectangle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionCircle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionPolygon, SIGNAL(triggered()), this, SLOT(onModeChanged()));
@@ -123,8 +123,8 @@ void MainWindow::onCircularRepeat() {
 }
 
 void MainWindow::onModeChanged() {
-	if (ui.actionMove->isChecked()) {
-		canvas->setMode(canvas::Canvas::MODE_MOVE);
+	if (ui.actionSelect->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_SELECT);
 	}
 	else if (ui.actionRectangle->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_RECTANGLE);
