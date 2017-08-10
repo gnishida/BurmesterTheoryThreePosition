@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>281</width>
-    <height>220</height>
+    <height>241</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -89,7 +89,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>180</y>
+     <y>200</y>
      <width>91</width>
      <height>31</height>
     </rect>
@@ -102,7 +102,7 @@
    <property name="geometry">
     <rect>
      <x>160</x>
-     <y>180</y>
+     <y>200</y>
      <width>91</width>
      <height>31</height>
     </rect>
@@ -115,7 +115,7 @@
    <property name="geometry">
     <rect>
      <x>160</x>
-     <y>110</y>
+     <y>120</y>
      <width>101</width>
      <height>20</height>
     </rect>
@@ -125,7 +125,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>110</y>
+     <y>120</y>
      <width>111</width>
      <height>21</height>
     </rect>
@@ -155,6 +155,29 @@
    </property>
    <property name="text">
     <string>Weight for trajectory:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>160</y>
+     <width>121</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Weight for linkage size:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEditSizeWeight">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>160</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
    </property>
   </widget>
  </widget>

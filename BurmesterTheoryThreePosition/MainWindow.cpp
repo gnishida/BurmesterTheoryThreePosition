@@ -191,7 +191,8 @@ void MainWindow::onCalculateSolution4RLinkage() {
 			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
 			dlg.ui.checkBoxRotatableCrank->isChecked(),
 			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
-			dlg.ui.lineEditTrajectoryWeight->text().toDouble());
+			dlg.ui.lineEditTrajectoryWeight->text().toDouble(),
+			dlg.ui.lineEditSizeWeight->text().toDouble());
 	}
 }
 
@@ -204,7 +205,8 @@ void MainWindow::onCalculateSolutionSliderCrank() {
 			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
 			dlg.ui.checkBoxRotatableCrank->isChecked(),
 			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
-			dlg.ui.lineEditTrajectoryWeight->text().toDouble());
+			dlg.ui.lineEditTrajectoryWeight->text().toDouble(),
+			dlg.ui.lineEditSizeWeight->text().toDouble());
 
 	}
 }

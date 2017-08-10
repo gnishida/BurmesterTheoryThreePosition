@@ -37,12 +37,14 @@ public:
     QLabel *label_3;
     QLineEdit *lineEditTrajectoryWeight;
     QLabel *label_4;
+    QLabel *label_5;
+    QLineEdit *lineEditSizeWeight;
 
     void setupUi(QDialog *LinkageSynthesisOptionDialog)
     {
         if (LinkageSynthesisOptionDialog->objectName().isEmpty())
             LinkageSynthesisOptionDialog->setObjectName(QStringLiteral("LinkageSynthesisOptionDialog"));
-        LinkageSynthesisOptionDialog->resize(281, 220);
+        LinkageSynthesisOptionDialog->resize(281, 241);
         label = new QLabel(LinkageSynthesisOptionDialog);
         label->setObjectName(QStringLiteral("label"));
         label->setGeometry(QRect(20, 10, 61, 21));
@@ -63,22 +65,28 @@ public:
         checkBoxRotatableCrank->setGeometry(QRect(20, 90, 131, 17));
         pushButtonOK = new QPushButton(LinkageSynthesisOptionDialog);
         pushButtonOK->setObjectName(QStringLiteral("pushButtonOK"));
-        pushButtonOK->setGeometry(QRect(30, 180, 91, 31));
+        pushButtonOK->setGeometry(QRect(30, 200, 91, 31));
         pushButtonCancel = new QPushButton(LinkageSynthesisOptionDialog);
         pushButtonCancel->setObjectName(QStringLiteral("pushButtonCancel"));
-        pushButtonCancel->setGeometry(QRect(160, 180, 91, 31));
+        pushButtonCancel->setGeometry(QRect(160, 200, 91, 31));
         lineEditPoseErrorWeight = new QLineEdit(LinkageSynthesisOptionDialog);
         lineEditPoseErrorWeight->setObjectName(QStringLiteral("lineEditPoseErrorWeight"));
-        lineEditPoseErrorWeight->setGeometry(QRect(160, 110, 101, 20));
+        lineEditPoseErrorWeight->setGeometry(QRect(160, 120, 101, 20));
         label_3 = new QLabel(LinkageSynthesisOptionDialog);
         label_3->setObjectName(QStringLiteral("label_3"));
-        label_3->setGeometry(QRect(20, 110, 111, 21));
+        label_3->setGeometry(QRect(20, 120, 111, 21));
         lineEditTrajectoryWeight = new QLineEdit(LinkageSynthesisOptionDialog);
         lineEditTrajectoryWeight->setObjectName(QStringLiteral("lineEditTrajectoryWeight"));
         lineEditTrajectoryWeight->setGeometry(QRect(160, 140, 101, 20));
         label_4 = new QLabel(LinkageSynthesisOptionDialog);
         label_4->setObjectName(QStringLiteral("label_4"));
         label_4->setGeometry(QRect(20, 140, 111, 21));
+        label_5 = new QLabel(LinkageSynthesisOptionDialog);
+        label_5->setObjectName(QStringLiteral("label_5"));
+        label_5->setGeometry(QRect(20, 160, 121, 21));
+        lineEditSizeWeight = new QLineEdit(LinkageSynthesisOptionDialog);
+        lineEditSizeWeight->setObjectName(QStringLiteral("lineEditSizeWeight"));
+        lineEditSizeWeight->setGeometry(QRect(160, 160, 101, 20));
 
         retranslateUi(LinkageSynthesisOptionDialog);
 
@@ -96,6 +104,7 @@ public:
         pushButtonCancel->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Cancel", 0));
         label_3->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Weight for pose error:", 0));
         label_4->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Weight for trajectory:", 0));
+        label_5->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Weight for linkage size:", 0));
     } // retranslateUi
 
 };

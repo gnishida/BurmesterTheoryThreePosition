@@ -134,12 +134,12 @@ namespace kinematics {
 
 			// if the moving point is outside the valid region, discard it.
 			if (!withinPolygon(linkage_region_pts, A1)) return false;
-
-			return true;
 		}
 		catch (std::exception& e) {
-			//std::cout << e.what() << std::endl;
+			return false;
 		}
+
+		return true;
 	}
 
 	bool LinkageSynthesisRRRP::sampleLinkForThreePoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox, glm::dvec2& A0, glm::dvec2& A1) {
@@ -161,11 +161,12 @@ namespace kinematics {
 
 			// if the moving point is outside the valid region, discard it.
 			if (!withinPolygon(linkage_region_pts, A1)) return false;
-
-			return true;
 		}
 		catch (char* ex) {
+			return false;
 		}
+
+		return true;
 	}
 
 	bool LinkageSynthesisRRRP::sampleLinkForTwoPoses(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox_world, const BBox& bbox_local, glm::dvec2& A0, glm::dvec2& A1) {
@@ -203,11 +204,7 @@ namespace kinematics {
 
 		// if the sampled point is outside the valid region, discard it.
 		if (!withinPolygon(linkage_region_pts_local, a)) return false;
-
-
-
-
-
+		
 		// setup the initial parameters for optimization
 		column_vector starting_point(2);
 		column_vector lower_bound(2);
@@ -273,7 +270,7 @@ namespace kinematics {
 		return true;
 	}
 
-	Solution LinkageSynthesisRRRP::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double pose_error_weight, double smoothness_weight) {
+	Solution LinkageSynthesisRRRP::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double pose_error_weight, double smoothness_weight, double size_weight) {
 		// select the best solution based on the trajectory
 		if (solutions.size() > 0) {
 			double min_cost = std::numeric_limits<double>::max();
@@ -281,7 +278,8 @@ namespace kinematics {
 			for (int i = 0; i < solutions.size(); i++) {
 				double pose_error = solutions[i].pose_error;
 				double tortuosity = tortuosityOfTrajectory(poses, solutions[i].fixed_point[0], solutions[i].fixed_point[1], solutions[i].moving_point[0], solutions[i].moving_point[1], body_pts);
-				double cost = pose_error * pose_error_weight + tortuosity * smoothness_weight;
+				double size = glm::length(solutions[i].fixed_point[0] - solutions[i].moving_point[0]) + glm::length(solutions[i].fixed_point[1] - solutions[i].moving_point[1]) + glm::length(solutions[i].moving_point[0] - solutions[i].moving_point[1]);
+				double cost = pose_error * pose_error_weight + tortuosity * smoothness_weight + size * size_weight;
 				if (cost < min_cost) {
 					min_cost = cost;
 					best = i;

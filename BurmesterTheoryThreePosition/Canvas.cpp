@@ -394,7 +394,7 @@ namespace canvas {
 		return glm::dvec2(origin.x() + p.x * scale, origin.y() - p.y * scale);
 	}
 
-	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight) {
+	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight, double size_weight) {
 		// change the mode to kinematics
 		setMode(MODE_KINEMATICS);
 		mainWin->ui.actionKinematics->setChecked(true);
@@ -474,7 +474,7 @@ namespace canvas {
 
 			start = clock();
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight, size_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -495,7 +495,7 @@ namespace canvas {
 				updateDefectFlag(solution.poses, kinematics[0]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight, size_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
