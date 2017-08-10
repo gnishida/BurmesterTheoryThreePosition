@@ -252,7 +252,7 @@ namespace kinematics {
 			v /= l;
 
 			// check the collinearity
-			//if (abs(crossProduct(v1, v)) > 0.01) return false;
+			if (abs(crossProduct(v1, v)) > 0.01) return false;
 
 			// check the order
 			if (glm::dot(v1, v) <= 0) return false;
@@ -521,7 +521,7 @@ namespace kinematics {
 		}
 
 		// initialize the visited flag
-		std::vector<bool> visited(poses.size(), false);
+		std::vector<bool> visited(angles.size(), false);
 		visited[0] = true;
 		int unvisited = 2;
 
@@ -692,7 +692,7 @@ namespace kinematics {
 		}
 
 		// initialize the visited flag
-		std::vector<bool> visited(poses.size(), false);
+		std::vector<bool> visited(angles.size(), false);
 		visited[0] = true;
 		int unvisited = 2;
 

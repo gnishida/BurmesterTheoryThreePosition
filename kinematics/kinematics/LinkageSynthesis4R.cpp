@@ -661,7 +661,7 @@ namespace kinematics {
 		}
 
 		// initialize the visited flag
-		std::vector<bool> visited(poses.size(), false);
+		std::vector<bool> visited(angles.size(), false);
 		visited[0] = true;
 		int unvisited = 2;
 
@@ -832,7 +832,7 @@ namespace kinematics {
 		}
 
 		// initialize the visited flag
-		std::vector<bool> visited(poses.size(), false);
+		std::vector<bool> visited(angles.size(), false);
 		visited[0] = true;
 		int unvisited = 2;
 
