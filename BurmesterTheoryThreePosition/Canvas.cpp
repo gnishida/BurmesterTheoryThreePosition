@@ -196,13 +196,16 @@ namespace canvas {
 		layers.push_back(layers.back().clone());
 		setLayer(layers.size() - 1);
 
-		// change the mode to MOVE
-		setMode(MODE_MOVE);
+		// change the mode to SELECT
+		setMode(MODE_SELECT);
 	}
 
 	void Canvas::insertLayer() {
 		layers.insert(layers.begin() + layer_id, layers[layer_id].clone());
 		setLayer(layer_id);
+
+		// change the mode to SELECT
+		setMode(MODE_SELECT);
 	}
 
 	void Canvas::deleteLayer() {
@@ -214,15 +217,15 @@ namespace canvas {
 			layer_id--;
 		}
 		setLayer(layer_id);
+
+		// change the mode to SELECT
+		setMode(MODE_SELECT);
 	}
 
 	void Canvas::setLayer(int layer_id) {
 		layers[this->layer_id].unselectAll();
 		this->layer_id = layer_id;
 		current_shape.reset();
-
-		// if the mode is not the design mode, change it forcefully to the MOVE mode
-		if (mode == MODE_KINEMATICS) setMode(MODE_MOVE);
 
 		update();
 	}
