@@ -848,19 +848,41 @@ namespace canvas {
 
 				// hit test for the shape
 				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
-						// start moving
-						mode = MODE_MOVE;
-						operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							if (!ctrlPressed) {
-								// If CTRL is not pressed, then deselect all other shapes.
-								unselectAll();
+					if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
+						if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
+							// start moving
+							mode = MODE_MOVE;
+							operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
+							if (!layers[layer_id].shapes[i]->isSelected()) {
+								if (!ctrlPressed) {
+									// If CTRL is not pressed, then deselect all other shapes.
+									unselectAll();
+								}
+								layers[layer_id].shapes[i]->select();
 							}
-							layers[layer_id].shapes[i]->select();
+							update();
+							return;
 						}
-						update();
-						return;
+					}
+				}
+
+				// hit test for the linkage region
+				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
+					if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_LINKAGE_REGION) {
+						if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
+							// start moving
+							mode = MODE_MOVE;
+							operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
+							if (!layers[layer_id].shapes[i]->isSelected()) {
+								if (!ctrlPressed) {
+									// If CTRL is not pressed, then deselect all other shapes.
+									unselectAll();
+								}
+								layers[layer_id].shapes[i]->select();
+							}
+							update();
+							return;
+						}
 					}
 				}
 
