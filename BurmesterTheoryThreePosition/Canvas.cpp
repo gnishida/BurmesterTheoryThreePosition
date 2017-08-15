@@ -388,7 +388,7 @@ namespace canvas {
 		return glm::dvec2(origin.x() + p.x * scale, origin.y() - p.y * scale);
 	}
 
-	void Canvas::calculateSolutions(int linkage_type, int num_samples, double sigma, bool avoid_branch_defect, bool rotatable_crank, double pose_error_weight, double trajectory_weight, double size_weight) {
+	void Canvas::calculateSolutions(int linkage_type, int num_samples, std::vector<std::pair<double, double>>& sigmas, bool avoid_branch_defect, bool rotatable_crank, double position_error_weight, double orientation_error_weight, double trajectory_weight, double size_weight) {
 		mainWin->ui.statusBar->showMessage("Please wait for a moment...");
 		
 		// change the mode to kinematics
@@ -463,7 +463,7 @@ namespace canvas {
 			}
 
 			// calculate the circle point curve and center point curve
-			synthesis->calculateSolution(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigma, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
+			synthesis->calculateSolution(poses[i], linkage_region_pts[i], num_samples, fixed_body_pts, body_pts[i], sigmas, rotatable_crank, avoid_branch_defect, 1.0, solutions[i]);
 
 			if (solutions[i].size() == 0) {
 				mainWin->ui.statusBar->showMessage("No candidate was found.");
@@ -480,7 +480,7 @@ namespace canvas {
 
 			start = clock();
 			if (linkage_type == LINKAGE_4R) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight, size_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, trajectory_weight, size_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;
@@ -501,7 +501,7 @@ namespace canvas {
 				updateDefectFlag(solution.poses, kinematics[0]);
 			}
 			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], pose_error_weight, trajectory_weight, size_weight);
+				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, trajectory_weight, size_weight);
 
 				// construct a linkage
 				kinematics::Kinematics kin;

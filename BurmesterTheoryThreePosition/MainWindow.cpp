@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include <QFileDialog>
 #include "LinkageSynthesisOptionDialog.h"
+#include <vector>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	ui.setupUi(this);
@@ -185,12 +186,19 @@ void MainWindow::onLayerChanged() {
 void MainWindow::onCalculateSolution4RLinkage() {
 	LinkageSynthesisOptionDialog dlg;
 	if (dlg.exec()) {
+		std::vector<std::pair<double, double>> sigmas = {
+			std::make_pair(dlg.ui.lineEditStdDevPositionFirst->text().toDouble(), dlg.ui.lineEditStdDevOrientationFirst->text().toDouble()),
+			std::make_pair(dlg.ui.lineEditStdDevPositionMiddle->text().toDouble(), dlg.ui.lineEditStdDevOrientationMiddle->text().toDouble()),
+			std::make_pair(dlg.ui.lineEditStdDevPositionLast->text().toDouble(), dlg.ui.lineEditStdDevOrientationLast->text().toDouble())
+		};
+
 		canvas->calculateSolutions(canvas::Canvas::LINKAGE_4R, 
 			dlg.ui.lineEditNumSamples->text().toInt(),
-			dlg.ui.lineEditStdDev->text().toDouble(),
+			sigmas,
 			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
 			dlg.ui.checkBoxRotatableCrank->isChecked(),
-			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
+			dlg.ui.lineEditPositionErrorWeight->text().toDouble(),
+			dlg.ui.lineEditOrientationErrorWeight->text().toDouble(),
 			dlg.ui.lineEditTrajectoryWeight->text().toDouble(),
 			dlg.ui.lineEditSizeWeight->text().toDouble());
 	}
@@ -199,12 +207,19 @@ void MainWindow::onCalculateSolution4RLinkage() {
 void MainWindow::onCalculateSolutionSliderCrank() {
 	LinkageSynthesisOptionDialog dlg;
 	if (dlg.exec()) {
+		std::vector<std::pair<double, double>> sigmas = {
+			std::make_pair(dlg.ui.lineEditStdDevPositionFirst->text().toDouble(), dlg.ui.lineEditStdDevOrientationFirst->text().toDouble()),
+			std::make_pair(dlg.ui.lineEditStdDevPositionMiddle->text().toDouble(), dlg.ui.lineEditStdDevOrientationMiddle->text().toDouble()),
+			std::make_pair(dlg.ui.lineEditStdDevPositionLast->text().toDouble(), dlg.ui.lineEditStdDevOrientationLast->text().toDouble())
+		};
+
 		canvas->calculateSolutions(canvas::Canvas::LINKAGE_RRRP,
 			dlg.ui.lineEditNumSamples->text().toInt(), 
-			dlg.ui.lineEditStdDev->text().toDouble(),
+			sigmas,
 			dlg.ui.checkBoxAvoidBranchDefect->isChecked(),
 			dlg.ui.checkBoxRotatableCrank->isChecked(),
-			dlg.ui.lineEditPoseErrorWeight->text().toDouble(),
+			dlg.ui.lineEditPositionErrorWeight->text().toDouble(),
+			dlg.ui.lineEditOrientationErrorWeight->text().toDouble(),
 			dlg.ui.lineEditTrajectoryWeight->text().toDouble(),
 			dlg.ui.lineEditSizeWeight->text().toDouble());
 

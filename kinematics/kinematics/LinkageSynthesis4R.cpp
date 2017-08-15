@@ -15,7 +15,7 @@ namespace kinematics {
 	* @param solutions1	the output solutions for the world coordinates of the driving crank at the first pose, each of which contains a pair of the center point and the circle point
 	* @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
 	*/
-	void LinkageSynthesis4R::calculateSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double sigma, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
+	void LinkageSynthesis4R::calculateSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, std::vector<std::pair<double, double>>& sigmas, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
 		solutions.clear();
 
 		srand(0);
@@ -42,13 +42,38 @@ namespace kinematics {
 			// HACK: 本来なら、bodyの座標を関数に渡し、関数側でpertubeしてからposeを計算すべきか？
 			//       とりあえず、回転はperturbしていない。
 			std::vector<glm::dmat3x3> perturbed_poses = poses;
-			double pose_error = 0.0;
-			for (int i = 1; i < poses.size(); i++) {
-				double e1 = genNormal(0, sigma);
+			double position_error = 0.0;
+			double orientation_error = 0.0;
+			for (int i = 0; i < poses.size(); i++) {
+				double e1 = 0;
+				double e2 = 0;
+				double delta_theta = 0;
+				if (i == 0) {
+					e1 = genNormal(0, sigmas[0].first);
+					e2 = genNormal(0, sigmas[0].first);
+					delta_theta = genNormal(0, sigmas[0].second);
+				}
+				else if (i == poses.size() - 1) {
+					e1 = genNormal(0, sigmas[2].first);
+					e2 = genNormal(0, sigmas[2].first);
+					delta_theta = genNormal(0, sigmas[2].second);
+				}
+				else {
+					e1 = genNormal(0, sigmas[1].first);
+					e2 = genNormal(0, sigmas[1].first);
+					delta_theta = genNormal(0, sigmas[1].second);
+				}
+
 				perturbed_poses[i][2][0] += e1;
-				double e2 = genNormal(0, sigma);
 				perturbed_poses[i][2][1] += e2;
-				pose_error += e1 * e1 + e2 * e2;
+				position_error += std::sqrt(e1 * e1 + e2 * e2);
+				
+				double theta = atan2(poses[i][0][1], poses[i][0][0]) + delta_theta;
+				perturbed_poses[i][0][0] = cos(theta);
+				perturbed_poses[i][0][1] = sin(theta);
+				perturbed_poses[i][1][0] = -sin(theta);
+				perturbed_poses[i][1][1] = cos(theta);
+				orientation_error += abs(delta_theta);
 			}
 
 			// sample a linkage
@@ -87,7 +112,7 @@ namespace kinematics {
 			// collision check
 			if (checkCollision(perturbed_poses, A0, B0, A1, B1, fixed_body_pts, body_pts)) continue;
 
-			solutions.push_back(Solution(A0, A1, B0, B1, pose_error, perturbed_poses));
+			solutions.push_back(Solution(A0, A1, B0, B1, position_error, orientation_error, perturbed_poses));
 			cnt++;
 		}
 		printf("\n");
@@ -207,16 +232,17 @@ namespace kinematics {
 		return true;
 	}
 
-	Solution LinkageSynthesis4R::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double pose_error_weight, double smoothness_weight, double size_weight) {
+	Solution LinkageSynthesis4R::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double position_error_weight, double orientation_error_weight, double smoothness_weight, double size_weight) {
 		// select the best solution based on the trajectory
 		if (solutions.size() > 0) {
 			double min_cost = std::numeric_limits<double>::max();
 			int best = -1;
 			for (int i = 0; i < solutions.size(); i++) {
-				double pose_error = solutions[i].pose_error;
+				double position_error = solutions[i].position_error;
+				double orientation_error = solutions[i].orientation_error;
 				double tortuosity = tortuosityOfTrajectory(solutions[i].poses, solutions[i].fixed_point[0], solutions[i].fixed_point[1], solutions[i].moving_point[0], solutions[i].moving_point[1], body_pts);
 				double size = glm::length(solutions[i].fixed_point[0] - solutions[i].moving_point[0]) + glm::length(solutions[i].fixed_point[1] - solutions[i].moving_point[1]) + glm::length(solutions[i].moving_point[0] - solutions[i].moving_point[1]);
-				double cost = pose_error * pose_error_weight + tortuosity * smoothness_weight + size * size_weight;
+				double cost = position_error * position_error_weight + orientation_error * orientation_error_weight + tortuosity * smoothness_weight + size * size_weight;
 				if (cost < min_cost) {
 					min_cost = cost;
 					best = i;
@@ -226,7 +252,7 @@ namespace kinematics {
 			return solutions[best];
 		}
 		else {
-			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0, poses);
+			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0, 0, poses);
 		}
 	}
 
