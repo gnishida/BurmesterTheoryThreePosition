@@ -14,6 +14,7 @@ LinkageSynthesisOptionDialog::LinkageSynthesisOptionDialog(QWidget *parent) : QD
 	ui.checkBoxRotatableCrank->setChecked(true);
 	ui.lineEditPositionErrorWeight->setText("1");
 	ui.lineEditOrientationErrorWeight->setText("5");
+	ui.lineEditLinkageLocationWeight->setText("10");
 	ui.lineEditTrajectoryWeight->setText("1");
 	ui.lineEditSizeWeight->setText("1");
 
