@@ -951,7 +951,7 @@ namespace canvas {
 				double min_dist = 6;
 				for (int i = 0; i < kinematics.size(); i++) {
 					for (int j = 0; j < kinematics[i].diagram.joints.size(); j++) {
-						if (j >= 2) continue;
+						if (!ctrlPressed && j >= 2) continue;
 						double dist = glm::length(kinematics[i].diagram.joints[j]->pos - pt);
 						if (dist < min_dist) {
 							min_dist = dist;
