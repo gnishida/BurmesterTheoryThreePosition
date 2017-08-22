@@ -215,7 +215,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Intermediate pose:</string>
+     <string>Intermediate poses:</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_11">

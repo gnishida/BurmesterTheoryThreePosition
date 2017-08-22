@@ -184,7 +184,7 @@ public:
         label_7->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for position:", 0));
         label_8->setText(QApplication::translate("LinkageSynthesisOptionDialog", "1st pose:", 0));
         label_9->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for orientation:", 0));
-        label_10->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Intermediate pose:", 0));
+        label_10->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Intermediate poses:", 0));
         label_11->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for orientation:", 0));
         label_12->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Last pose:", 0));
         label_13->setText(QApplication::translate("LinkageSynthesisOptionDialog", "Stdev for orientation:", 0));
