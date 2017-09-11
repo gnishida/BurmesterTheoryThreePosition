@@ -228,6 +228,11 @@ namespace canvas {
 		QFile file(filename);
 		if (!file.open(QFile::ReadOnly | QFile::Text)) throw "File cannot open.";
 
+		// if the animation is running, stop it.
+		if (animation_timer) {
+			stop();
+		}
+
 		QDomDocument doc;
 		doc.setContent(&file);
 
