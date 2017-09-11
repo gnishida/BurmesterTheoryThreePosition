@@ -31,10 +31,17 @@ namespace canvas {
 				double x = params_node.toElement().attribute("x").toDouble();
 				double y = params_node.toElement().attribute("y").toDouble();
 
-				points.push_back(glm::dvec2(x, y));
+				if (points.size() == 0 || points.back() != glm::dvec2(x, y)) {
+					points.push_back(glm::dvec2(x, y));
+				}
 			}
 
 			params_node = params_node.nextSibling();
+		}
+
+		// remove the last point if it is coincide with the first point
+		if (points.size() >= 2 && points.front() == points.back()) {
+			points.pop_back();
 		}
 	}
 
@@ -119,7 +126,9 @@ namespace canvas {
 
 	void Polygon::addPoint(const glm::dvec2& point) {
 		//points.push_back(point);
-		points.push_back(current_point);
+		if (points.size() == 0 || points.back() != current_point) {
+			points.push_back(current_point);
+		}
 		current_point = point;
 	}
 
