@@ -1,6 +1,4 @@
 #include "Circle.h"
-#include "Point.h"
-#include <kinematics.h>
 
 namespace canvas {
 

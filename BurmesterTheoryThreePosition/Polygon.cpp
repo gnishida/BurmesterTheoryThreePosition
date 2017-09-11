@@ -1,6 +1,6 @@
 #include "Polygon.h"
-#include "Point.h"
-#include <kinematics.h>
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
 
 namespace canvas {
 
@@ -161,7 +161,7 @@ namespace canvas {
 	bool Polygon::hit(const glm::dvec2& point) const {
 		glm::dvec2 pt = localCoordinate(point);
 
-		return kinematics::withinPolygon(points, pt);
+		return withinPolygon(points, pt);
 	}
 	
 	/**
@@ -194,6 +194,18 @@ namespace canvas {
 		}
 
 		return BoundingBox(glm::dvec2(min_x, min_y), glm::dvec2(max_x, max_y));
+	}
+
+	bool Polygon::withinPolygon(const std::vector<glm::dvec2>& points, const glm::dvec2& pt) const {
+		typedef boost::geometry::model::d2::point_xy<double> point_2d;
+
+		boost::geometry::model::ring<point_2d> ring;
+		for (int i = 0; i < points.size(); i++) {
+			ring.push_back(point_2d(points[i].x, points[i].y));
+		}
+
+		boost::geometry::correct(ring);
+		return boost::geometry::within(point_2d(pt.x, pt.y), ring);
 	}
 
 }
