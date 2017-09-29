@@ -154,7 +154,7 @@ namespace kinematics {
 				dist += distMap.at<double>(B0.y - enlarged_bbox_world.minPt.y, B0.x - enlarged_bbox_world.minPt.x);
 				dist += distMap.at<double>(B1.y - enlarged_bbox_world.minPt.y, B1.x - enlarged_bbox_world.minPt.x);
 
-				solutions.push_back(Solution(A0, A1, B0, B1, position_error, orientation_error, dist, perturbed_poses));
+				solutions.push_back(Solution({ A0, B0, A1, B1 }, position_error, orientation_error, dist, perturbed_poses));
 				cnt++;
 			}
 		}
@@ -284,8 +284,8 @@ namespace kinematics {
 				double position_error = solutions[i].position_error;
 				double orientation_error = solutions[i].orientation_error;
 				double linkage_location = solutions[i].dist;
-				double tortuosity = tortuosityOfTrajectory(solutions[i].poses, solutions[i].fixed_point[0], solutions[i].fixed_point[1], solutions[i].moving_point[0], solutions[i].moving_point[1], body_pts);
-				double size = glm::length(solutions[i].fixed_point[0] - solutions[i].moving_point[0]) + glm::length(solutions[i].fixed_point[1] - solutions[i].moving_point[1]) + glm::length(solutions[i].moving_point[0] - solutions[i].moving_point[1]);
+				double tortuosity = tortuosityOfTrajectory(solutions[i].poses, solutions[i].points[0], solutions[i].points[1], solutions[i].points[2], solutions[i].points[3], body_pts);
+				double size = glm::length(solutions[i].points[0] - solutions[i].points[2]) + glm::length(solutions[i].points[1] - solutions[i].points[3]) + glm::length(solutions[i].points[2] - solutions[i].points[3]);
 				double cost = position_error * position_error_weight + orientation_error * orientation_error_weight + linkage_location * linkage_location_weight + tortuosity * smoothness_weight + size * size_weight;
 				if (cost < min_cost) {
 					min_cost = cost;
@@ -296,8 +296,28 @@ namespace kinematics {
 			return solutions[best];
 		}
 		else {
-			return Solution({ 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 }, 0, 0, 0, poses);
+			return Solution({ { 0, 0 }, { 0, 2 }, { 2, 0 }, { 2, 2 } }, 0, 0, 0, poses);
 		}
+	}
+
+	/**
+	 * Construct a linkage.
+	 */
+	Kinematics LinkageSynthesis4R::constructKinematics(const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& body_pts) {
+		Kinematics kin;
+		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, points[0])));
+		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, points[1])));
+		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, points[2])));
+		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, points[3])));
+		kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
+		kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
+		kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
+
+		// update the geometry
+		kin.diagram.bodies.clear();
+		kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[0]);
+
+		return kin;
 	}
 
 	/**

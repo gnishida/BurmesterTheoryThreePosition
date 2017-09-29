@@ -484,48 +484,12 @@ namespace canvas {
 			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for obtaining " << solutions[i].size() << " candidates." << std::endl;
 
 			start = clock();
-			if (linkage_type == LINKAGE_4R) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, linkage_location_weight, trajectory_weight, size_weight);
+			kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, linkage_location_weight, trajectory_weight, size_weight);
+			kinematics::Kinematics kin = synthesis->constructKinematics(solution.points, { body_pts[i] });
 
-				// construct a linkage
-				kinematics::Kinematics kin;
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution.fixed_point[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution.fixed_point[1])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution.moving_point[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(3, false, solution.moving_point[1])));
-				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
-				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
-				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
+			kinematics.push_back(kin);
 
-				// update the geometry
-				kin.diagram.bodies.clear();
-				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
-
-				kinematics.push_back(kin);
-
-				updateDefectFlag(solution.poses, kinematics[0]);
-			}
-			else if (linkage_type == LINKAGE_RRRP) {
-				kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, linkage_location_weight, trajectory_weight, size_weight);
-
-				// construct a linkage
-				kinematics::Kinematics kin;
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, solution.fixed_point[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, solution.fixed_point[1])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, solution.moving_point[0])));
-				kin.diagram.addJoint(boost::shared_ptr<kinematics::SliderHinge>(new kinematics::SliderHinge(3, false, solution.moving_point[1])));
-				kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
-				kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
-				kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
-
-				// update the geometry
-				kin.diagram.bodies.clear();
-				kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[i]);
-
-				kinematics.push_back(kin);
-
-				updateDefectFlag(solution.poses, kinematics[0]);
-			}
+			updateDefectFlag(solution.poses, kinematics[0]);
 
 			end = clock();
 			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for finding the best solution. " << std::endl;
@@ -563,7 +527,7 @@ namespace canvas {
 		double min_dist = std::numeric_limits<double>::max();
 
 		for (int i = 0; i < solutions.size(); i++) {
-			double dist = glm::length(solutions[i].fixed_point[joint_id] - pt);
+			double dist = glm::length(solutions[i].points[joint_id] - pt);
 			if (dist < min_dist) {
 				min_dist = dist;
 				ans = i;
@@ -673,12 +637,12 @@ namespace canvas {
 				painter.setPen(QPen(QColor(255, 128, 128, 64), 1));
 				painter.setBrush(QBrush(QColor(255, 128, 128, 64)));
 				for (int i = 0; i < solutions[linkage_id].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][i].fixed_point[0].x * scale, origin.y() - solutions[linkage_id][i].fixed_point[0].y * scale, 3, 3);
+					painter.drawEllipse(origin.x() + solutions[linkage_id][i].points[0].x * scale, origin.y() - solutions[linkage_id][i].points[0].y * scale, 3, 3);
 				}
 				painter.setPen(QPen(QColor(128, 128, 255, 64), 1));
 				painter.setBrush(QBrush(QColor(128, 128, 255, 64)));
 				for (int i = 0; i < solutions[linkage_id].size(); i++) {
-					painter.drawEllipse(origin.x() + solutions[linkage_id][i].fixed_point[1].x * scale, origin.y() - solutions[linkage_id][i].fixed_point[1].y * scale, 3, 3);
+					painter.drawEllipse(origin.x() + solutions[linkage_id][i].points[1].x * scale, origin.y() - solutions[linkage_id][i].points[1].y * scale, 3, 3);
 				}
 			}
 
@@ -1063,25 +1027,20 @@ namespace canvas {
 						int selectedSolution = findSolution(solutions[linkage_id], pt, joint_id);
 
 						if (selectedSolution >= 0) {
-							// move the selected joint (center point)
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][selectedSolution].fixed_point[joint_id];
+							// move the joints according to the selected solution
+							for (int i = 0; i < solutions[linkage_id][selectedSolution].points.size(); i++) {
+								kinematics[linkage_id].diagram.joints[i]->pos = solutions[linkage_id][selectedSolution].points[i];
+							}
 
-							// move the other end joint (circle point)
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][selectedSolution].moving_point[joint_id];
-
-							// initialize the other link
-							joint_id = 1 - joint_id;
-							kinematics[linkage_id].diagram.joints[joint_id]->pos = solutions[linkage_id][selectedSolution].fixed_point[joint_id];
-							kinematics[linkage_id].diagram.joints[joint_id + 2]->pos = solutions[linkage_id][selectedSolution].moving_point[joint_id];
-
-							// initialize the other linkages
+							// move the other linkages back to the first pose
 							for (int i = 0; i < kinematics.size(); i++) {
 								if (i == linkage_id) continue;
 
 								int selectedSolution = findSolution(solutions[i], kinematics[i].diagram.joints[0]->pos, 0);
 								if (selectedSolution >= 0) {
-									kinematics[i].diagram.joints[2]->pos = solutions[i][selectedSolution].moving_point[0];
-									kinematics[i].diagram.joints[3]->pos = solutions[i][selectedSolution].moving_point[1];
+									for (int j = 0; j < solutions[i][selectedSolution].points.size(); j++) {
+										kinematics[i].diagram.joints[j]->pos = solutions[i][selectedSolution].points[j];
+									}
 								}
 							}
 

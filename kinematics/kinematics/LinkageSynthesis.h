@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include "Solution.h"
 #include "BBox.h"
+#include "Kinematics.h"
 
 namespace kinematics {
 
@@ -18,6 +19,7 @@ namespace kinematics {
 		virtual bool checkOrderDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug = false) = 0;
 		virtual bool checkBranchDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug = false) = 0;
 		virtual bool checkCircuitDefect(const std::vector<glm::dmat3x3>& poses, const glm::dvec2& p0, const glm::dvec2& p1, const glm::dvec2& p2, const glm::dvec2& p3, bool debug = false) = 0;
+		virtual Kinematics constructKinematics(const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& body_pts) = 0;
 	};
 
 }
