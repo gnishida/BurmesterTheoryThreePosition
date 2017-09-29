@@ -548,10 +548,10 @@ namespace canvas {
 			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
 		}
 
-		linkage_subtype = synthesis->getType(kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-		orderDefect = synthesis->checkOrderDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-		branchDefect = synthesis->checkBranchDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
-		circuitDefect = synthesis->checkCircuitDefect(poses, kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos);
+		linkage_subtype = synthesis->getType({ kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
+		orderDefect = synthesis->checkOrderDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
+		branchDefect = synthesis->checkBranchDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
+		circuitDefect = synthesis->checkCircuitDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
 	}
 
 	/*
