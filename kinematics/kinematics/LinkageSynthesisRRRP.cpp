@@ -125,6 +125,7 @@ namespace kinematics {
 
 				glm::dvec2 B0, B1;
 				if (!sampleSlider(perturbed_poses, enlarged_linkage_region_pts, enlarged_region_local, enlarged_bbox_world, enlarged_bbox_local, B0, B1)) continue;
+				glm::dvec2 slider_dir = B1 - B0;
 
 				// check hard constraints
 				if (glm::length(A0 - B0) < min_link_length) continue;
@@ -135,7 +136,15 @@ namespace kinematics {
 				if (checkCircuitDefect(perturbed_poses, { A0, B0, A1, B1 })) continue;
 
 				// collision check
-				if (checkCollision(perturbed_poses, { A0, B0, A1, B1 }, fixed_body_pts, body_pts)) continue;
+				glm::dvec2 slider_end_pos1, slider_end_pos2;
+				if (checkCollision(perturbed_poses, { A0, B0, A1, B1 }, fixed_body_pts, body_pts, slider_end_pos1, slider_end_pos2)) continue;
+
+				// locate the two endpoints of the bar
+				glm::dvec2 B2;
+				B0 = slider_end_pos1 - slider_dir * 2.0;
+				B2 = slider_end_pos2 + slider_dir * 2.0;
+				if (!withinPolygon(linkage_region_pts, B0)) continue;
+				if (!withinPolygon(linkage_region_pts, B2)) continue;
 
 				// calculate the distance of the joints from the user-specified linkage region
 				double dist = 0.0;
@@ -144,7 +153,7 @@ namespace kinematics {
 				dist += distMap.at<double>(B0.y - enlarged_bbox_world.minPt.y, B0.x - enlarged_bbox_world.minPt.x);
 				dist += distMap.at<double>(B1.y - enlarged_bbox_world.minPt.y, B1.x - enlarged_bbox_world.minPt.x);
 
-				solutions.push_back(Solution({ A0, B0, A1, B1 }, position_error, orientation_error, 0, perturbed_poses));
+				solutions.push_back(Solution({ A0, B0, A1, B1, B2 }, position_error, orientation_error, 0, perturbed_poses));
 				cnt++;
 			}
 		}
@@ -265,6 +274,10 @@ namespace kinematics {
 		return true;
 	}
 
+	/**
+	 * Sample a slider.
+	 * A0 and A2 are fixed joints, whereas A1 is a PR joint.
+	 */
 	bool LinkageSynthesisRRRP::sampleSlider(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, const std::vector<glm::dvec2>& linkage_region_pts_local, const BBox& bbox_world, const BBox& bbox_local, glm::dvec2& A0, glm::dvec2& A1) {
 		// sample a point within the valid region as the local coordinate of a circle point
 		glm::dvec2 a(genRand(bbox_local.minPt.x, bbox_local.maxPt.x), genRand(bbox_local.minPt.y, bbox_local.maxPt.y));
@@ -303,9 +316,7 @@ namespace kinematics {
 			//std::cout << e.what() << std::endl;
 		}
 
-		glm::dvec2 A2(poses[1] * glm::dvec3(a, 1));
-
-		glm::dvec2 v1 = A2 - A1;
+		glm::dvec2 v1 = glm::dvec2(poses[1] * glm::dvec3(a, 1)) - A1;
 		double l1 = glm::length(v1);
 		v1 /= l1;
 
@@ -313,26 +324,36 @@ namespace kinematics {
 			glm::dvec2 A(poses[i] * glm::dvec3(a, 1));
 			glm::dvec2 v = A - A1;
 			double l = glm::length(v);
-			v /= l;
 
 			// check the collinearity
-			if (abs(crossProduct(v1, v)) > 0.01) return false;
+			if (abs(crossProduct(v1, v / l)) > 0.01) return false;
 
 			// check the order
-			if (glm::dot(v1, v) <= 0) return false;
+			l = glm::dot(v1, v);
+			if (l <= 0) return false;
 			if (l <= l1) return false;
 		}
 
+		A0 = A1 - v1;
+
+
+		//A2 = A1 + v1 * (max_l + 2.0);
+		
+		/*
 		// sample a point within the region as the fixed point
 		A0 = glm::dvec2(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
+		*/
 
 		// if the sampled point is outside the valid region, discard it.
 		if (!withinPolygon(linkage_region_pts, A0)) return false;
+		//if (!withinPolygon(linkage_region_pts, A2)) return false;
 
+		/*
 		A0 = A1 + v1 * glm::dot(A0 - A1, v1);
 
 		// if the center point is outside the valid region, discard it.
 		if (!withinPolygon(linkage_region_pts, A0)) return false;
+		*/
 
 		return true;
 	}
@@ -371,8 +392,9 @@ namespace kinematics {
 		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, points[1])));
 		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(2, false, points[2])));
 		kin.diagram.addJoint(boost::shared_ptr<kinematics::SliderHinge>(new kinematics::SliderHinge(3, false, points[3])));
+		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(4, true, points[4])));
 		kin.diagram.addLink(true, kin.diagram.joints[0], kin.diagram.joints[2]);
-		kin.diagram.addLink(false, kin.diagram.joints[1], kin.diagram.joints[3]);
+		kin.diagram.addLink(false, { kin.diagram.joints[1], kin.diagram.joints[3], kin.diagram.joints[4] });
 		kin.diagram.addLink(false, kin.diagram.joints[2], kin.diagram.joints[3]);
 
 		// update the geometry
@@ -531,7 +553,7 @@ namespace kinematics {
 		return false;
 	}
 
-	bool LinkageSynthesisRRRP::checkCollision(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
+	bool LinkageSynthesisRRRP::checkCollision(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, glm::dvec2& slider_end_pos1, glm::dvec2& slider_end_pos2) {
 		kinematics::Kinematics kinematics(0.02);
 
 		// construct a linkage
@@ -542,6 +564,14 @@ namespace kinematics {
 		kinematics.diagram.addLink(true, kinematics.diagram.joints[0], kinematics.diagram.joints[2]);
 		kinematics.diagram.addLink(false, kinematics.diagram.joints[1], kinematics.diagram.joints[3]);
 		kinematics.diagram.addLink(false, kinematics.diagram.joints[2], kinematics.diagram.joints[3]);
+
+		// set the initial point of slider and direction
+		glm::dvec2 orig_slider_pos = points[3];
+		glm::dvec2 slider_dir = glm::normalize(points[3] - points[1]);
+		slider_end_pos1 = points[3];
+		slider_end_pos2 = points[3];
+		double slider_min_dist = 0;
+		double slider_max_dist = 0;
 
 		// set the geometry
 		for (int i = 0; i < fixed_body_pts.size(); i++) {
@@ -616,6 +646,15 @@ namespace kinematics {
 		while (true) {
 			try {
 				kinematics.stepForward(true, false);
+				double dist = glm::dot(kinematics.diagram.joints[3]->pos - orig_slider_pos, slider_dir);
+				if (dist > slider_max_dist) {
+					slider_max_dist = dist;
+					slider_end_pos2 = kinematics.diagram.joints[3]->pos;
+				}
+				else if (dist < slider_min_dist) {
+					slider_min_dist = dist;
+					slider_end_pos1 = kinematics.diagram.joints[3]->pos;
+				}
 			}
 			catch (char* ex) {
 				// if only some of the poses are reached before collision, the collision is detected.
