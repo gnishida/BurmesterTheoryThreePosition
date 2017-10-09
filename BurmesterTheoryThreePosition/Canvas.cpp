@@ -455,7 +455,7 @@ namespace canvas {
 
 		kinematics.clear();
 
-		solutions.resize(body_pts.size(), std::vector<kinematics::Solution>(2));
+		solutions.resize(body_pts.size());
 		for (int i = 0; i < body_pts.size(); i++) {
 			time_t start = clock();
 
@@ -473,7 +473,7 @@ namespace canvas {
 			if (solutions[i].size() == 0) {
 				mainWin->ui.statusBar->showMessage("No candidate was found.");
 			}
-			else if (solutions[i].size() == 0) {
+			else if (solutions[i].size() == 1) {
 				mainWin->ui.statusBar->showMessage("1 candidate was found.");
 			}
 			else {
