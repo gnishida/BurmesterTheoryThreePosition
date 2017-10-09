@@ -57,8 +57,8 @@ namespace kinematics {
 			cv::fillPoly(img, pts, cv::Scalar(0), 4);
 			cv::Mat distMap;
 			cv::distanceTransform(img, distMap, CV_DIST_L2, 3);
-			cv::imwrite("test2.png", img);
-			cv::imwrite("test.png", distMap);
+			//cv::imwrite("test2.png", img);
+			//cv::imwrite("test.png", distMap);
 			distMap.convertTo(distMap, CV_64F);
 
 			// convert the coordinates of the enlarged regions to the local coordinate system of the first pose
@@ -336,24 +336,8 @@ namespace kinematics {
 
 		A0 = A1 - v1;
 
-
-		//A2 = A1 + v1 * (max_l + 2.0);
-		
-		/*
-		// sample a point within the region as the fixed point
-		A0 = glm::dvec2(genRand(bbox_world.minPt.x, bbox_world.maxPt.x), genRand(bbox_world.minPt.y, bbox_world.maxPt.y));
-		*/
-
 		// if the sampled point is outside the valid region, discard it.
 		if (!withinPolygon(linkage_region_pts, A0)) return false;
-		//if (!withinPolygon(linkage_region_pts, A2)) return false;
-
-		/*
-		A0 = A1 + v1 * glm::dot(A0 - A1, v1);
-
-		// if the center point is outside the valid region, discard it.
-		if (!withinPolygon(linkage_region_pts, A0)) return false;
-		*/
 
 		return true;
 	}
