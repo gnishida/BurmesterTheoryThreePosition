@@ -178,18 +178,11 @@ namespace kinematics {
 		boost::shared_ptr<BodyGeometry> body = boost::shared_ptr<BodyGeometry>(new BodyGeometry(joint1, joint2));
 
 		// setup rotation matrix
-		glm::vec2 dir = joint2->pos - joint1->pos;
-		double angle = atan2(dir.y, dir.x);
-
-		glm::dvec2 p1 = joint1->pos;
-		glm::dmat4x4 model;
-		model = glm::rotate(model, -angle, glm::dvec3(0, 0, 1));
+		glm::dmat3x2 model = body->getWorldToLocalModel();
 
 		for (int i = 0; i < points.size(); ++i) {
 			// convert the coordinates to the local coordinate system
-			glm::dvec2 rotated_p = glm::dvec2(model * glm::dvec4(points[i].x - p1.x, points[i].y - p1.y, 0, 1));
-
-			body->points.push_back(rotated_p);
+			body->points.push_back(model * glm::dvec3(points[i], 1));
 		}
 
 		bodies.push_back(body);

@@ -11,22 +11,10 @@ namespace kinematics {
 	std::vector<glm::dvec2> BodyGeometry::getActualPoints() {
 		std::vector<glm::dvec2> actual_points;
 
-		glm::dvec2 dir = pivot2->pos - pivot1->pos;
-		double angle = atan2(dir.y, dir.x);
-		//glm::dvec2 p1 = (bodies[i].pivot1->pos + bodies[i].pivot2->pos) * 0.5;
-		glm::dvec2 p1 = pivot1->pos;
-
-		glm::dmat3x2 mat;
-		mat[0][0] = cos(angle);
-		mat[1][0] = -sin(angle);
-		mat[2][0] = p1.x;
-		mat[0][1] = sin(angle);
-		mat[1][1] = cos(angle);
-		mat[2][1] = p1.y;
+		glm::dmat3x2 model = getLocalToWorldModel();
 
 		for (int k = 0; k < points.size(); ++k) {
-			glm::dvec2 actual_point = mat * glm::dvec3(points[k], 1);
-			actual_points.push_back(actual_point);
+			actual_points.push_back(model * glm::dvec3(points[k], 1));
 		}
 
 		return actual_points;
@@ -46,6 +34,35 @@ namespace kinematics {
 
 		painter.restore();
 
+	}
+
+	glm::dmat3x2 BodyGeometry::getLocalToWorldModel() {
+		glm::dvec2 dir = pivot2->pos - pivot1->pos;
+		double angle = atan2(dir.y, dir.x);
+		glm::dvec2 p1 = pivot1->pos;
+
+		glm::dmat3x2 model;
+		model[0][0] = cos(angle);
+		model[1][0] = -sin(angle);
+		model[2][0] = p1.x;
+		model[0][1] = sin(angle);
+		model[1][1] = cos(angle);
+		model[2][1] = p1.y;
+		return model;
+	}
+
+	glm::dmat3x2 BodyGeometry::getWorldToLocalModel() {
+		glm::vec2 dir = pivot2->pos - pivot1->pos;
+		double angle = -atan2(dir.y, dir.x);
+
+		glm::dmat3x2 model;
+		model[0][0] = cos(angle);
+		model[1][0] = -sin(angle);
+		model[2][0] = -pivot1->pos.x * cos(angle) + pivot1->pos.y * sin(angle);
+		model[0][1] = sin(angle);
+		model[1][1] = cos(angle);
+		model[2][1] = -pivot1->pos.x * sin(angle) - pivot1->pos.y * cos(angle);
+		return model;
 	}
 
 }

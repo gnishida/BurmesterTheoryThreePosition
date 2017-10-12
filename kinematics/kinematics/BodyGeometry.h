@@ -22,6 +22,9 @@ namespace kinematics {
 
 		std::vector<glm::dvec2> getActualPoints();
 		void draw(QPainter& painter, const QPointF& origin, float scale);
+
+		glm::dmat3x2 getLocalToWorldModel();
+		glm::dmat3x2 getWorldToLocalModel();
 	};
 
 }
