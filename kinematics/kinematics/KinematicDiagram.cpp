@@ -60,11 +60,12 @@ namespace kinematics {
 		for (int i = 0; i < bodies.size(); ++i) {
 			int id1 = bodies[i]->pivot1->id;
 			int id2 = bodies[i]->pivot2->id;
-			boost::shared_ptr<BodyGeometry> body = boost::shared_ptr<BodyGeometry>(new BodyGeometry(copied_diagram.joints[id1], copied_diagram.joints[id2]));
-			
-			for (int j = 0; j < bodies[i]->points.size(); ++j) {
-				body->points.push_back(bodies[i]->points[j]);
+			boost::shared_ptr<BodyGeometry> body = boost::shared_ptr<BodyGeometry>(new BodyGeometry(copied_diagram.joints[id1], copied_diagram.joints[id2], bodies[i]->polygons));
+			/*
+			for (int j = 0; j < bodies[i]->polygon.points.size(); ++j) {
+			body->polygon.points.push_back(bodies[i]->polygon.points[j]);
 			}
+			*/
 
 			for (auto it = bodies[i]->neighbors.begin(); it != bodies[i]->neighbors.end(); ++it) {
 				body->neighbors[it.key()] = it.value();
@@ -174,15 +175,17 @@ namespace kinematics {
 		return link;
 	}
 
-	void KinematicDiagram::addBody(boost::shared_ptr<Joint> joint1, boost::shared_ptr<Joint> joint2, std::vector<glm::dvec2> points) {
-		boost::shared_ptr<BodyGeometry> body = boost::shared_ptr<BodyGeometry>(new BodyGeometry(joint1, joint2));
+	void KinematicDiagram::addBody(boost::shared_ptr<Joint> joint1, boost::shared_ptr<Joint> joint2, const Object2D& polygons) {
+		boost::shared_ptr<BodyGeometry> body = boost::shared_ptr<BodyGeometry>(new BodyGeometry(joint1, joint2, polygons));
 
-		// setup rotation matrix
+		// get the world to local matrix
 		glm::dmat3x2 model = body->getWorldToLocalModel();
 
-		for (int i = 0; i < points.size(); ++i) {
-			// convert the coordinates to the local coordinate system
-			body->points.push_back(model * glm::dvec3(points[i], 1));
+		for (int i = 0; i < polygons.size(); i++) {
+			for (int j = 0; j < polygons[i].points.size(); ++j) {
+				// convert the coordinates to the local coordinate system
+				body->polygons[i].points[j] = model * glm::dvec3(polygons[i].points[j], 1);
+			}
 		}
 
 		bodies.push_back(body);
@@ -352,10 +355,13 @@ namespace kinematics {
 			bodies[i]->neighbors.clear();
 		}
 
-		// check the adjacency
+		// Check the adjacency
+		// The current implementation is not elegant.
+		// Adjacent bodies are considered to belong to the same group of a fixed body,
+		// and we do not check the collision between them.
 		for (int i = 0; i < bodies.size(); ++i) {
 			for (int j = i + 1; j < bodies.size(); ++j) {
-				if (polygonPolygonIntersection(bodies[i]->getActualPoints(), bodies[j]->getActualPoints())) {
+				if (polygonPolygonIntersection(bodies[i]->getActualPoints()[0], bodies[j]->getActualPoints()[0])) {
 					bodies[i]->neighbors[j] = true;
 					bodies[j]->neighbors[i] = true;
 				}
@@ -369,7 +375,7 @@ namespace kinematics {
 				// skip the neighbors
 				if (bodies[i]->neighbors.contains(j)) continue;
 
-				if (polygonPolygonIntersection(bodies[i]->getActualPoints(), bodies[j]->getActualPoints())) {
+				if (polygonPolygonIntersection(bodies[i]->getActualPoints()[0], bodies[j]->getActualPoints()[0])) {
 					return true;
 				}
 			}

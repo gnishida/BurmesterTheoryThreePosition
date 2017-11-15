@@ -11,10 +11,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 	QActionGroup* groupMode = new QActionGroup(this);
 	groupMode->addAction(ui.actionSelect);
-	groupMode->addAction(ui.actionRectangle);
-	groupMode->addAction(ui.actionCircle);
-	groupMode->addAction(ui.actionPolygon);
+	groupMode->addAction(ui.actionFixedRectangle);
+	groupMode->addAction(ui.actionFixedCircle);
+	groupMode->addAction(ui.actionFixedPolygon);
+	groupMode->addAction(ui.actionMovingRectangle);
+	groupMode->addAction(ui.actionMovingCircle);
+	groupMode->addAction(ui.actionMovingPolygon);
 	groupMode->addAction(ui.actionLinkageRegion);
+	groupMode->addAction(ui.actionLinkageAvoidanceRegion);
 	groupMode->addAction(ui.actionKinematics);
 	ui.actionSelect->setChecked(true);
 	
@@ -35,10 +39,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionSelectAll, SIGNAL(triggered()), this, SLOT(onSelectAll()));
 	connect(ui.actionCircularRepeat, SIGNAL(triggered()), this, SLOT(onCircularRepeat()));
 	connect(ui.actionSelect, SIGNAL(triggered()), this, SLOT(onModeChanged()));
-	connect(ui.actionRectangle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
-	connect(ui.actionCircle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
-	connect(ui.actionPolygon, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionFixedRectangle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionFixedCircle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionFixedPolygon, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionMovingRectangle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionMovingCircle, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionMovingPolygon, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionLinkageRegion, SIGNAL(triggered()), this, SLOT(onModeChanged()));
+	connect(ui.actionLinkageAvoidanceRegion, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionKinematics, SIGNAL(triggered()), this, SLOT(onModeChanged()));
 	connect(ui.actionAddLayer, SIGNAL(triggered()), this, SLOT(onAddLayer()));
 	connect(ui.actionInsertLayer, SIGNAL(triggered()), this, SLOT(onInsertLayer()));
@@ -127,17 +135,29 @@ void MainWindow::onModeChanged() {
 	if (ui.actionSelect->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_SELECT);
 	}
-	else if (ui.actionRectangle->isChecked()) {
-		canvas->setMode(canvas::Canvas::MODE_RECTANGLE);
+	else if (ui.actionFixedRectangle->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_FIXED_RECTANGLE);
 	}
-	else if (ui.actionCircle->isChecked()) {
-		canvas->setMode(canvas::Canvas::MODE_CIRCLE);
+	else if (ui.actionFixedCircle->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_FIXED_CIRCLE);
 	}
-	else if (ui.actionPolygon->isChecked()) {
-		canvas->setMode(canvas::Canvas::MODE_POLYGON);
+	else if (ui.actionFixedPolygon->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_FIXED_POLYGON);
+	}
+	else if (ui.actionMovingRectangle->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_MOVING_RECTANGLE);
+	}
+	else if (ui.actionMovingCircle->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_MOVING_CIRCLE);
+	}
+	else if (ui.actionMovingPolygon->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_MOVING_POLYGON);
 	}
 	else if (ui.actionLinkageRegion->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_LINKAGE_REGION);
+	}
+	else if (ui.actionLinkageAvoidanceRegion->isChecked()) {
+		canvas->setMode(canvas::Canvas::MODE_LINKAGE_AVOIDANCE);
 	}
 	else if (ui.actionKinematics->isChecked()) {
 		canvas->setMode(canvas::Canvas::MODE_KINEMATICS);

@@ -2,13 +2,13 @@
 
 namespace canvas {
 
-	Rectangle::Rectangle(int subtype) : Shape(subtype) {
+	Rectangle::Rectangle() {
 		width = 0;
 		height = 0;
 		theta = 0;
 	}
 
-	Rectangle::Rectangle(int subtype, const glm::dvec2& point) : Shape(subtype) {
+	Rectangle::Rectangle(const glm::dvec2& point) {
 		width = 0;
 		height = 0;
 		pos = point;
@@ -18,7 +18,7 @@ namespace canvas {
 	/**
 	 * Construct a rectangle from the xml dom node.
 	 */
-	Rectangle::Rectangle(int subtype, QDomNode& node) : Shape(subtype) {
+	Rectangle::Rectangle(QDomNode& node) {
 		QDomNode params_node = node.firstChild();
 		while (!params_node.isNull()) {
 			if (params_node.toElement().tagName() == "pose") {
@@ -42,7 +42,7 @@ namespace canvas {
 		return boost::shared_ptr<Shape>(new Rectangle(*this));
 	}
 
-	void Rectangle::draw(QPainter& painter, const QPointF& origin, double scale) const {
+	void Rectangle::draw(QPainter& painter, const QColor& brush_color, const QPointF& origin, double scale) const {
 		painter.save();
 
 		painter.translate(origin.x() + pos.x * scale, origin.y() - pos.y * scale);
@@ -54,12 +54,7 @@ namespace canvas {
 		else {
 			painter.setPen(QPen(QColor(0, 0, 0), 1));
 		}
-		if (currently_drawing) {
-			painter.setBrush(QBrush(QColor(0, 0, 0, 0)));
-		}
-		else {
-			painter.setBrush(brushes[subtype]);
-		}
+		painter.setBrush(brush_color);
 
 		// draw edges
 		QPolygonF pol;
@@ -87,8 +82,8 @@ namespace canvas {
 		painter.restore();
 	}
 
-	QDomElement Rectangle::toXml(QDomDocument& doc) const {
-		QDomElement shape_node = doc.createElement("shape");
+	QDomElement Rectangle::toXml(QDomDocument& doc, const QString& node_name) const {
+		QDomElement shape_node = doc.createElement(node_name);
 		shape_node.setAttribute("type", "rectangle");
 		shape_node.setAttribute("subtype", subtype);
 

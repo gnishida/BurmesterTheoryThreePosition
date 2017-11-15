@@ -1,5 +1,6 @@
 #include "KinematicUtils.h"
 #include <random>
+#include "clipper.hpp"
 
 namespace kinematics {
 
@@ -192,6 +193,27 @@ namespace kinematics {
 		intPoint = a + (b - a) * t0;
 
 		return true;
+	}
+
+	/**
+	 * Calculate the distance from the segment a-b to point c.
+	 */
+	double distanceToSegment(const glm::dvec2& a, const glm::dvec2& b, const glm::dvec2& c) {
+		float r_numerator = (c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y);
+		float r_denomenator = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y);
+
+		if (r_denomenator <= 0.0) {
+			return glm::length(a - c);
+		}
+
+		float r = r_numerator / r_denomenator;
+
+		if (r < 0 || r > 1) {
+			return std::min(glm::length(c - a), glm::length(c - b));
+		}
+		else {
+			return abs((a.y - c.y) * (b.x - a.x) - (a.x - c.x) * (b.y - a.y)) / sqrt(r_denomenator);
+		}
 	}
 
 	glm::dvec2 circleCenterFromThreePoints(const glm::dvec2& a, const glm::dvec2& b, const glm::dvec2& c) {
@@ -388,6 +410,87 @@ namespace kinematics {
 	}
 
 	/**
+	* Find the closest point of a polygon from the specified point.
+	*/
+	glm::dvec2 closestOffsetPoint(const std::vector<glm::dvec2>& points, const glm::dvec2& p, double margin, int num_samples) {
+		ClipperLib::Path subj;
+		for (int i = 0; i < points.size(); i++) {
+			subj.push_back(ClipperLib::IntPoint(points[i].x * 100, points[i].y * 100));
+		}
+
+		ClipperLib::Paths solution;
+		ClipperLib::ClipperOffset co;
+		co.AddPath(subj, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
+		co.Execute(solution, -margin);
+
+		double min_dist = std::numeric_limits<double>::max();
+		glm::dvec2 ans;
+		for (int i = 0; i < solution.size(); i++) {
+			std::vector<glm::dvec2> offset_points;
+			for (int j = 0; j < solution[i].size(); j++) {
+				double x = solution[i][j].X * 0.01;
+				double y = solution[i][j].Y * 0.01;
+				offset_points.push_back(glm::dvec2(x, y));
+			}
+
+			double dist;
+			glm::dvec2 a = closestPoint(offset_points, p, dist, num_samples);
+
+			if (dist < min_dist) {
+				min_dist = dist;
+				ans = a;
+			}
+		}
+
+		return ans;
+	}
+
+	/**
+	 * Find the closest point of a polygon from the specified point.
+	 */
+	glm::dvec2 closestPoint(const std::vector<glm::dvec2>& points, const glm::dvec2& p, double& dist, int num_samples) {
+		std::vector<double> edge_lengths(points.size());
+		double length = 0.0;
+		for (int i = 0; i < points.size(); i++) {
+			int next = (i + 1) % points.size();
+			edge_lengths[i] = glm::length(points[next] - points[i]);
+			length += edge_lengths[i];
+		}
+
+		double step = length / num_samples;
+
+		// sample #num_samples points on the polygon
+		std::vector<glm::dvec2> sampled_points(num_samples);
+		int index = 0;
+		double len = 0;
+		for (int i = 0; i < num_samples; i++) {
+			int next = (index + 1) % points.size();
+			sampled_points[i] = glm::mix(points[index], points[next], len / edge_lengths[index]);
+
+			len += step;
+			if (len > edge_lengths[index]) {
+				while (index < points.size() && len > edge_lengths[index]) {
+					len -= edge_lengths[index];
+					index++;
+				}
+			}
+		}
+
+		// find the cloest point
+		dist = std::numeric_limits<double>::max();
+		glm::dvec2 ans;
+		for (int i = 0; i < num_samples; i++) {
+			double d = glm::length(sampled_points[i] - p);
+			if (d < dist) {
+				dist = d;
+				ans = sampled_points[i];
+			}
+		}
+
+		return ans;
+	}
+
+	/**
 	 * Calcualte the reflection point of p about the line that passes a and its direction is v.
 	 */
 	glm::dvec2 reflect(const glm::dvec2& p, const glm::dvec2& a, const glm::dvec2& v) {
@@ -399,6 +502,24 @@ namespace kinematics {
 
 	double crossProduct(const glm::dvec2& v1, const glm::dvec2& v2) {
 		return v1.x * v2.y - v1.y * v2.x;
+	}
+
+	/**
+	* Create a transformation matrix that transforms the origin to O, and (1, 0) to X.
+	*/
+	glm::dmat3x3 calculateTransMatrix(const glm::dvec2& O, const glm::dvec2& X) {
+		double angle = atan2(X.y - O.y, X.x - O.x);
+		glm::dmat3x3 T;
+		T[0][0] = cos(angle);
+		T[0][1] = sin(angle);
+		T[0][2] = 0;
+		T[1][0] = -sin(angle);
+		T[1][1] = cos(angle);
+		T[1][2] = 0;
+		T[2][0] = O.x;
+		T[2][1] = O.y;
+		T[2][2] = 1;
+		return T;
 	}
 
 	/**
@@ -444,6 +565,52 @@ namespace kinematics {
 			max_y = std::max(max_y, points[i].y);
 		}
 		return BBox(glm::dvec2(min_x, min_y), glm::dvec2(max_x, max_y));
+	}
+
+	std::vector<glm::dvec2> generateBarPolygon(const glm::dvec2& p1, const glm::dvec2& p2, float link_width) {
+		std::vector<glm::dvec2> ans;
+
+		glm::dvec2 vec = glm::normalize(p2 - p1);
+		glm::dvec2 perp(-vec.y, vec.x);
+		perp *= link_width * 0.5;
+
+		ans.push_back(p1 + perp);
+		ans.push_back(p1 - perp);
+		ans.push_back(p2 - perp);
+		ans.push_back(p2 + perp);
+
+		return ans;
+	}
+
+	std::vector<glm::dvec2> generateRoundedBarPolygon(const glm::dvec2& p1, const glm::dvec2& p2, float link_radius, int num_slices) {
+		std::vector<glm::dvec2> ans;
+
+		double theta0 = atan2(p2.y - p1.y, p2.x - p1.x) + M_PI * 0.5;
+		for (int k = 0; k <= num_slices / 2; k++) {
+			if (p1 != p2 || k < num_slices / 2) {
+				double theta = theta0 + M_PI * 2 / num_slices * k;
+				ans.push_back(glm::dvec2(cos(theta) * link_radius + p1.x, sin(theta) * link_radius + p1.y));
+			}
+		}
+		theta0 += M_PI;
+		for (int k = 0; k <= num_slices / 2; k++) {
+			if (p1 != p2 || k < num_slices / 2) {
+				double theta = theta0 + M_PI * 2 / num_slices * k;
+				ans.push_back(glm::dvec2(cos(theta) * link_radius + p2.x, sin(theta) * link_radius + p2.y));
+			}
+		}
+
+		return ans;
+	}
+
+	std::vector<glm::dvec2> generateCirclePolygon(const glm::dvec2& p, float radius, int num_slices) {
+		std::vector<glm::dvec2> ans;
+
+		for (int k = 0; k < num_slices; k++) {
+			double theta = M_PI * 2 / num_slices * k;
+			ans.push_back(glm::dvec2(cos(theta) * radius + p.x, sin(theta) * radius + p.y));
+		}
+		return ans;
 	}
 
 }

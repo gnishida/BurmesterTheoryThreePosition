@@ -26,17 +26,17 @@ namespace canvas {
 		scale = 10.0;
 
 		mode = MODE_SELECT;
-		layers.resize(2);
-		layer_id = 0;
 		operation.reset();
 		current_shape.reset();
+
+		// add an empty design to the history as an initial state
+		history.push(design);
 
 		animation_timer = NULL;
 		collision_check = true;
 
 		selectedJoint = std::make_pair(-1, -1);
 		linkage_type = LINKAGE_4R;
-		linkage_subtype = -1;
 		orderDefect = false;
 		branchDefect = false;
 		circuitDefect = false;
@@ -46,9 +46,7 @@ namespace canvas {
 	}
 
 	void Canvas::clear() {
-		for (int i = 0; i < layers.size(); ++i) {
-			layers[i].clear();
-		}
+		design.clear();
 		selected_shape.reset();
 
 		// select 1st layer
@@ -63,25 +61,21 @@ namespace canvas {
 	}
 
 	void Canvas::selectAll() {
-		layers[layer_id].selectAll();
+		design.selectAll();
 		mode = MODE_SELECT;
 		update();
 	}
 
 	void Canvas::unselectAll() {
-		layers[layer_id].unselectAll();
+		design.unselectAll();
 		current_shape.reset();
 		update();
 	}
 
 	void Canvas::deleteSelectedShapes() {
-		for (int i = layers[layer_id].shapes.size() - 1; i >= 0; --i) {
-			if (layers[layer_id].shapes[i]->isSelected()) {
-				for (int l = 0; l < layers.size(); l++) {
-					layers[l].shapes.erase(layers[l].shapes.begin() + i);
-				}
-			}
-		}
+		history.push(design);
+
+		design.deleteSelectedShapes();
 
 		current_shape.reset();
 		update();
@@ -89,7 +83,7 @@ namespace canvas {
 
 	void Canvas::undo() {
 		try {
-			layers = history.undo();
+			design = history.undo();
 			update();
 		}
 		catch (char* ex) {
@@ -98,7 +92,7 @@ namespace canvas {
 
 	void Canvas::redo() {
 		try {
-			layers = history.redo();
+			design = history.redo();
 			update();
 		}
 		catch (char* ex) {
@@ -106,11 +100,11 @@ namespace canvas {
 	}
 
 	void Canvas::copySelectedShapes() {
-		layers[layer_id].copySelectedShapes(copied_shapes);
+		design.copySelectedShapes();
 	}
 
 	void Canvas::pasteCopiedShapes() {
-		layers[layer_id].pasteCopiedShapes(copied_shapes);
+		design.pasteCopiedShapes();
 		current_shape.reset();
 		mode = MODE_SELECT;
 		update();
@@ -120,6 +114,7 @@ namespace canvas {
 	 *
 	 */
 	void Canvas::circularRepeat(int num_repeat) {
+		/*
 		int N = layers[0].shapes.size();
 		for (int i = 0; i < N; i++) {
 			if (layers[0].shapes[i]->getSubType() == Shape::TYPE_BODY) {
@@ -178,6 +173,7 @@ namespace canvas {
 				}
 			}
 		}
+		*/
 	}
 
 	void Canvas::setMode(int mode) {
@@ -193,29 +189,24 @@ namespace canvas {
 	}
 	
 	void Canvas::addLayer() {
-		layers.push_back(layers.back().clone());
-		setLayer(layers.size() - 1);
+		design.addLayer();
+		setLayer(design.num_layers - 1);
 	}
 
 	void Canvas::insertLayer() {
-		layers.insert(layers.begin() + layer_id, layers[layer_id].clone());
-		setLayer(layer_id);
+		design.insertLayer();
+		setLayer(design.layer_id);
 	}
 
 	void Canvas::deleteLayer() {
-		// we assume that there must be at least two layers.
-		if (layers.size() <= 2) return;
-
-		layers.erase(layers.begin() + layer_id);
-		if (layer_id >= layers.size()) {
-			layer_id--;
+		if (design.deleteLayer()) {
+			setLayer(design.layer_id);
 		}
-		setLayer(layer_id);
 	}
 
 	void Canvas::setLayer(int layer_id) {
-		layers[this->layer_id].unselectAll();
-		this->layer_id = layer_id;
+		design.unselectAll();
+		design.layer_id = layer_id;
 		current_shape.reset();
 
 		// change the mode to SELECT
@@ -225,73 +216,31 @@ namespace canvas {
 	}
 
 	void Canvas::open(const QString& filename) {
-		QFile file(filename);
-		if (!file.open(QFile::ReadOnly | QFile::Text)) throw "File cannot open.";
-
 		// if the animation is running, stop it.
 		if (animation_timer) {
 			stop();
 		}
 
-		QDomDocument doc;
-		doc.setContent(&file);
-
-		QDomElement root = doc.documentElement();
-		if (root.tagName() != "design")	throw "Invalid file format.";
-
-		// clear the data
-		layers.clear();
-		selected_shape.reset();
-		mode = MODE_SELECT;
-
-		QDomNode layer_node = root.firstChild();
-		while (!layer_node.isNull()) {
-			if (layer_node.toElement().tagName() == "layer") {
-				Layer layer;
-				layer.load(layer_node.toElement());
-				layers.push_back(layer);
-			}
-
-			layer_node = layer_node.nextSibling();
-		}
-
-		// select 1st layer to display
-		layer_id = 0;
+		design.load(filename);
+		history.push(design);
 
 		// no currently drawing shape
 		current_shape.reset();
+
+		mode = MODE_SELECT;
 
 		// clear the kinematic data
 		kinematics.clear();
 		solutions.clear();
 
 		// update the layer menu based on the loaded data
-		mainWin->initLayerMenu(layers.size());
+		mainWin->initLayerMenu(design.num_layers);
 
 		update();
 	}
 
 	void Canvas::save(const QString& filename) {
-		QFile file(filename);
-		if (!file.open(QFile::WriteOnly)) throw "File cannot open.";
-
-		QDomDocument doc;
-
-		// set root node
-		QDomElement root = doc.createElement("design");
-		root.setAttribute("author", "Gen Nishida");
-		root.setAttribute("version", "1.0");
-		root.setAttribute("date", QDate::currentDate().toString("MM/dd/yyyy"));
-		doc.appendChild(root);
-
-		// write layers
-		for (int i = 0; i < layers.size(); ++i) {
-			QDomElement layer_node = layers[i].toXml(doc);
-			root.appendChild(layer_node);
-		}
-
-		QTextStream out(&file);
-		doc.save(out, 4);
+		design.save(filename);
 	}
 
 	void Canvas::run() {
@@ -406,56 +355,59 @@ namespace canvas {
 
 		// get the geometry of fixed rigid bodies, moving bodies, linkage regions
 		fixed_body_pts.clear();
-		body_pts.clear();
-		linkage_region_pts.clear();
-		poses.clear();
-		for (int i = 0; i < layers[0].shapes.size(); i++) {
-			int subtype = layers[0].shapes[i]->getSubType();
-			if (subtype == Shape::TYPE_BODY) {
-				glm::dmat3x3 mat0 = layers[0].shapes[i]->getModelMatrix();
+		body_pts.resize(design.moving_bodies.size());
+		std::vector<std::vector<glm::dmat3x3>> poses(design.moving_bodies.size());
+		std::vector<std::vector<glm::dvec2>> linkage_region_pts;
+		std::vector<std::vector<glm::dvec2>> linkage_avoidance_pts;
 
-				bool moved = false;
-				for (int j = 0; j < layers.size(); j++) {
-					glm::dmat3x3 mat = layers[j].shapes[i]->getModelMatrix();
-					if (mat != mat0) {
-						moved = true;
-						break;
-					}
-				}
+		for (int i = 0; i < design.fixed_bodies.size(); i++) {
+			fixed_body_pts.push_back(kinematics::Object2D(design.fixed_bodies[i]->getPoints()));
+		}
+		for (int i = 0; i < design.moving_bodies.size(); i++) {
+			poses[i].resize(design.moving_bodies[i].poses.size());
 
-				if (moved) {
-					body_pts.push_back(layers[0].shapes[i]->getPoints());
+			body_pts[i] = kinematics::Object2D(design.moving_bodies[i].poses[0]->getPoints());
 
-					// calcualte poses of the moving body
-					poses.resize(poses.size() + 1);
-					for (int j = 0; j < layers.size(); j++) {
-						poses.back().push_back(layers[j].shapes[i]->getModelMatrix());
-					}
-				}
-				else {
-					fixed_body_pts.push_back(layers[0].shapes[i]->getPoints());
-				}
+			// set pose matrices
+			for (int j = 0; j < design.moving_bodies[i].poses.size(); j++) {
+				poses[i][j] = design.moving_bodies[i].poses[j]->getModelMatrix();
 			}
-			else if (subtype == Shape::TYPE_LINKAGE_REGION) {
-				linkage_region_pts.push_back(layers[0].shapes[i]->getPoints());
+
+			if (design.moving_bodies[i].linkage_region) {
+				linkage_region_pts.push_back(design.moving_bodies[i].linkage_region->getPoints());
+			}
+			else {
+				// use a bounding box as a default linkage region
+				canvas::BoundingBox bbox;
+				for (int j = 0; j < design.fixed_bodies.size(); j++) {
+					bbox.addPoints(design.fixed_bodies[j]->getPoints());
+				}
+				bbox.addPoints(design.moving_bodies[i].poses[0]->getPoints());
+				linkage_region_pts.push_back({ bbox.minPt, glm::dvec2(bbox.minPt.x, bbox.maxPt.y), bbox.maxPt, glm::dvec2(bbox.maxPt.x, bbox.minPt.y) });
+			}
+
+			if (design.moving_bodies[i].linkage_avoidance) {
+				linkage_avoidance_pts.push_back(design.moving_bodies[i].linkage_avoidance->getPoints());
+			}
+			else {
+				linkage_avoidance_pts.push_back({});
 			}
 		}
-
-		// if the linkage region is not specified, use a large enough region as default
-		if (linkage_region_pts.size() < poses.size()) {
-			int num_linkage_regions = linkage_region_pts.size();
-			linkage_region_pts.resize(poses.size());
-			for (int i = num_linkage_regions; i < poses.size(); i++) {
-				linkage_region_pts[i].push_back(glm::dvec2(-40, -40));
-				linkage_region_pts[i].push_back(glm::dvec2(-40, 40));
-				linkage_region_pts[i].push_back(glm::dvec2(40, 40));
-				linkage_region_pts[i].push_back(glm::dvec2(40, -40));
-			}
-		}
-
+		
 		kinematics.clear();
 
+		if (linkage_type == LINKAGE_4R) {
+			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesis4R());
+		}
+		else if (linkage_type == LINKAGE_RRRP) {
+			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
+		}
+		//else if (linkage_type == LINKAGE_WATT_I) {
+			//synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisWattI());
+		//}
+
 		solutions.resize(body_pts.size());
+		selected_solutions.resize(body_pts.size());
 		for (int i = 0; i < body_pts.size(); i++) {
 			time_t start = clock();
 
@@ -485,11 +437,9 @@ namespace canvas {
 
 			start = clock();
 			kinematics::Solution solution = synthesis->findBestSolution(poses[i], solutions[i], fixed_body_pts, body_pts[i], position_error_weight, orientation_error_weight, linkage_location_weight, trajectory_weight, size_weight);
-			kinematics::Kinematics kin = synthesis->constructKinematics(solution.points, { body_pts[i] });
+			kinematics::Kinematics kin = synthesis->constructKinematics(solution.points, body_pts[i]);
 
 			kinematics.push_back(kin);
-
-			updateDefectFlag(solution.poses, kinematics[0]);
 
 			end = clock();
 			std::cout << "Elapsed: " << (double)(end - start) / CLOCKS_PER_SEC << " sec for finding the best solution. " << std::endl;
@@ -511,8 +461,6 @@ namespace canvas {
 		std::cout << "Total computation time was " << (double)(end - start) / CLOCKS_PER_SEC << " sec." << std::endl;
 
 		update();
-
-		//updateDefectFlag(poses[0], kinematics[0]);
 	}
 
 	/**
@@ -535,23 +483,6 @@ namespace canvas {
 		}
 
 		return ans;
-	}
-
-	void Canvas::updateDefectFlag(const std::vector<glm::dmat3x3>& poses, const kinematics::Kinematics& kinematics) {
-		int linkage_id = selectedJoint.first;
-
-		boost::shared_ptr<kinematics::LinkageSynthesis> synthesis;
-		if (linkage_type == LINKAGE_4R) {
-			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesis4R());
-		}
-		else if (linkage_type == LINKAGE_RRRP) {
-			synthesis = boost::shared_ptr<kinematics::LinkageSynthesis>(new kinematics::LinkageSynthesisRRRP());
-		}
-
-		linkage_subtype = synthesis->getType({ kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
-		orderDefect = synthesis->checkOrderDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
-		branchDefect = synthesis->checkBranchDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
-		circuitDefect = synthesis->checkCircuitDefect(poses, { kinematics.diagram.joints[0]->pos, kinematics.diagram.joints[1]->pos, kinematics.diagram.joints[2]->pos, kinematics.diagram.joints[3]->pos });
 	}
 
 	/*
@@ -604,12 +535,10 @@ namespace canvas {
 
 		if (mode != MODE_KINEMATICS) {
 			// render unselected layers as background
-			for (int l = 0; l < layers.size(); ++l) {
-				if (l == layer_id) continue;
-				for (int i = 0; i < layers[l].shapes.size(); ++i) {
-					if (layers[l].shapes[i]->getSubType() == Shape::TYPE_BODY) {
-						layers[l].shapes[i]->draw(painter, origin, scale);
-					}
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				for (int j = 0; j < design.moving_bodies[i].poses.size(); j++) {
+					if (j == design.layer_id) continue;
+					design.moving_bodies[i].poses[j]->draw(painter, QColor(0, 255, 0, 60), origin, scale);
 				}
 			}
 
@@ -619,14 +548,25 @@ namespace canvas {
 			painter.drawRect(0, 0, width(), height());
 
 			// render selected layer
-			for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-				layers[layer_id].shapes[i]->draw(painter, origin, scale);
+			for (int i = 0; i < design.fixed_bodies.size(); i++) {
+				design.fixed_bodies[i]->draw(painter, QColor(150, 255, 0, 60), origin, scale);
+			}
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				design.moving_bodies[i].poses[design.layer_id]->draw(painter, QColor(0, 255, 0, 60), origin, scale);
+			}
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				if (design.moving_bodies[i].linkage_region) {
+					design.moving_bodies[i].linkage_region->draw(painter, QColor(0, 0, 255, 30), origin, scale);
+				}
+				if (design.moving_bodies[i].linkage_avoidance) {
+					design.moving_bodies[i].linkage_avoidance->draw(painter, QColor(255, 0, 0, 30), origin, scale);
+				}
 			}
 
 			// render currently drawing shape
-			if (mode == MODE_RECTANGLE || mode == MODE_CIRCLE || mode == MODE_POLYGON || mode == MODE_LINKAGE_REGION) {
+			if (mode == MODE_FIXED_RECTANGLE || mode == MODE_FIXED_CIRCLE || mode == MODE_FIXED_POLYGON || mode == MODE_MOVING_RECTANGLE || mode == MODE_MOVING_CIRCLE || mode == MODE_MOVING_POLYGON || mode == MODE_LINKAGE_REGION || mode == MODE_LINKAGE_AVOIDANCE) {
 				if (current_shape) {
-					current_shape->draw(painter, origin, scale);
+					current_shape->draw(painter, QColor(0, 0, 0, 0), origin, scale);
 				}
 			}
 		}
@@ -649,76 +589,20 @@ namespace canvas {
 			// draw input shapes
 			painter.setPen(QPen(QColor(0, 0, 0), 1, Qt::DashLine));
 			painter.setBrush(QBrush(QColor(0, 0, 0, 0)));
-			for (int i = 0; i < layers.size(); i++) {
-				for (int j = 0; j < layers[i].shapes.size(); j++) {
-					if (layers[i].shapes[j]->getSubType() == Shape::TYPE_BODY) {
-						QPolygonF pts;
-						std::vector<glm::dvec2>& body = layers[i].shapes[j]->getPoints();
-						for (int k = 0; k < body.size(); k++) {
-							pts.push_back(QPointF(origin.x() + body[k].x * scale, origin.y() - body[k].y * scale));
-						}
-						painter.drawPolygon(pts);
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				for (int j = 0; j < design.moving_bodies[i].poses.size(); j++) {
+					//design.moving_bodies[i].poses[design.layer_id]->draw(painter, QColor(0, 255, 0, 60), origin, scale);
+					QPolygonF pts;
+					std::vector<glm::dvec2>& body = design.moving_bodies[i].poses[j]->getPoints();
+					for (int k = 0; k < body.size(); k++) {
+						pts.push_back(QPointF(origin.x() + body[k].x * scale, origin.y() - body[k].y * scale));
 					}
+					painter.drawPolygon(pts);
 				}
 			}
 
 			for (int i = 0; i < kinematics.size(); i++) {
 				kinematics[i].draw(painter, origin, scale);
-			}
-
-			painter.setPen(QPen(QColor(0, 0, 0)));
-			if (linkage_type == LINKAGE_4R) {
-				if (linkage_subtype == 0) {
-					painter.drawText(QPoint(6, 20), "Grashof (Drag-link)");
-				}
-				else if (linkage_subtype == 1) {
-					painter.drawText(QPoint(6, 20), "Grashof (Crank-rocker)");
-				}
-				else if (linkage_subtype == 2) {
-					painter.drawText(QPoint(6, 20), "Grashof (Rocker-crank)");
-				}
-				else if (linkage_subtype == 3) {
-					painter.drawText(QPoint(6, 20), "Grashof (Double-rocker)");
-				}
-				else if (linkage_subtype == 4) {
-					painter.drawText(QPoint(6, 20), "Non-Grashof (0-0 rocker)");
-				}
-				else if (linkage_subtype == 5) {
-					painter.drawText(QPoint(6, 20), "Non-Grashof (pi-pi rocker)");
-				}
-				else if (linkage_subtype == 6) {
-					painter.drawText(QPoint(6, 20), "Non-Grashof (pi-0 rocker)");
-				}
-				else if (linkage_subtype == 7) {
-					painter.drawText(QPoint(6, 20), "Non-Grashof (0-pi rocker)");
-				}
-			}
-			else if (linkage_type == LINKAGE_RRRP) {
-				if (linkage_subtype == 0) {
-					painter.drawText(QPoint(6, 20), "Rotatable crank");
-				}
-				else if (linkage_subtype == 1) {
-					painter.drawText(QPoint(6, 20), "0-rocker");
-				}
-				else if (linkage_subtype == 2) {
-					painter.drawText(QPoint(6, 20), "Pi-rocker");
-				}
-				else if (linkage_subtype == 3) {
-					painter.drawText(QPoint(6, 20), "Rocker");
-				}
-			}
-			painter.setPen(QPen(QColor(255, 0, 0)));
-			if ((linkage_type == LINKAGE_4R && linkage_subtype >= 2) || (linkage_type == LINKAGE_RRRP && linkage_subtype >= 1)) {
-				painter.drawText(QPoint(6, 36), "Grashof defect");
-			}
-			if (orderDefect) {
-				painter.drawText(QPoint(6, 52), "Order defect");
-			}
-			if (branchDefect) {
-				painter.drawText(QPoint(6, 68), "Branch defect");
-			}
-			if (circuitDefect) {
-				painter.drawText(QPoint(6, 84), "Circuit defect");
 			}
 		}
 
@@ -737,183 +621,70 @@ namespace canvas {
 		if (e->buttons() & Qt::LeftButton) {
 			if (mode == MODE_SELECT) {
 				// hit test for rotation marker
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (glm::length(layers[layer_id].shapes[i]->getRotationMarkerPosition(scale) - layers[layer_id].shapes[i]->localCoordinate(screenToWorldCoordinates(e->x(), e->y()))) < 10 / scale) {
-						// start rotating
-						mode = MODE_ROTATION;
-						operation = boost::shared_ptr<Operation>(new RotateOperation(screenToWorldCoordinates(e->x(), e->y()), layers[layer_id].shapes[i]->worldCoordinate(layers[layer_id].shapes[i]->getCenter())));
-						selected_shape = layers[layer_id].shapes[i];
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							unselectAll();
-							layers[layer_id].shapes[i]->select();
-						}
-						update();
-						return;
-					}
+				glm::dvec2 rotate_pivot;
+				if (design.hitTestRotationMarker(screenToWorldCoordinates(e->x(), e->y()), scale, 10 / scale, selected_shape, rotate_pivot)) {
+					// start rotating
+					mode = MODE_ROTATION;
+					operation = boost::shared_ptr<canvas::Operation>(new canvas::RotateOperation(screenToWorldCoordinates(e->x(), e->y()), rotate_pivot));
+					update();
+					return;
 				}
 
 				// hit test for resize marker
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					BoundingBox bbox = layers[layer_id].shapes[i]->boundingBox();
-					if (glm::length(bbox.minPt - layers[layer_id].shapes[i]->localCoordinate(screenToWorldCoordinates(e->x(), e->y()))) < 10 / scale) {
-						// start resizing
-						mode = MODE_RESIZE;
-						operation = boost::shared_ptr<Operation>(new ResizeOperation(screenToWorldCoordinates(e->x(), e->y()), layers[layer_id].shapes[i]->worldCoordinate(bbox.maxPt)));
-						selected_shape = layers[layer_id].shapes[i];
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							unselectAll();
-							layers[layer_id].shapes[i]->select();
-						}
-						update();
-						return;
-					}
-
-					if (glm::length(glm::dvec2(bbox.maxPt.x, bbox.minPt.y) - layers[layer_id].shapes[i]->localCoordinate(screenToWorldCoordinates(e->x(), e->y()))) < 10 / scale) {
-						// start resizing
-						mode = MODE_RESIZE;
-						operation = boost::shared_ptr<Operation>(new ResizeOperation(screenToWorldCoordinates(e->x(), e->y()), layers[layer_id].shapes[i]->worldCoordinate(glm::dvec2(bbox.minPt.x, bbox.maxPt.y))));
-						selected_shape = layers[layer_id].shapes[i];
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							unselectAll();
-							layers[layer_id].shapes[i]->select();
-						}
-						update();
-						return;
-					}
-
-					if (glm::length(glm::dvec2(bbox.minPt.x, bbox.maxPt.y) - layers[layer_id].shapes[i]->localCoordinate(screenToWorldCoordinates(e->x(), e->y()))) < 10 / scale) {
-						// start resizing
-						mode = MODE_RESIZE;
-						operation = boost::shared_ptr<Operation>(new ResizeOperation(screenToWorldCoordinates(e->x(), e->y()), layers[layer_id].shapes[i]->worldCoordinate(glm::dvec2(bbox.maxPt.x, bbox.minPt.y))));
-						selected_shape = layers[layer_id].shapes[i];
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							unselectAll();
-							layers[layer_id].shapes[i]->select();
-						}
-						update();
-						return;
-					}
-
-					if (glm::length(bbox.maxPt - layers[layer_id].shapes[i]->localCoordinate(screenToWorldCoordinates(e->x(), e->y()))) < 10 / scale) {
-						// start resizing
-						mode = MODE_RESIZE;
-						operation = boost::shared_ptr<Operation>(new ResizeOperation(screenToWorldCoordinates(e->x(), e->y()), layers[layer_id].shapes[i]->worldCoordinate(bbox.minPt)));
-						selected_shape = layers[layer_id].shapes[i];
-						if (!layers[layer_id].shapes[i]->isSelected()) {
-							unselectAll();
-							layers[layer_id].shapes[i]->select();
-						}
-						update();
-						return;
-					}
-				}
-
-				// hit test for the selected shapes first
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->isSelected()) {
-						if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
-							// reselecting the already selected shapes
-							mode = MODE_MOVE;
-							operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
-							update();
-							return;
-						}
-					}
+				glm::dvec2 resize_pivot;
+				if (design.hitTestResizeMarker(screenToWorldCoordinates(e->x(), e->y()), 10 / scale, selected_shape, resize_pivot)) {
+					// start resizing
+					mode = MODE_RESIZE;
+					operation = boost::shared_ptr<canvas::Operation>(new canvas::ResizeOperation(screenToWorldCoordinates(e->x(), e->y()), resize_pivot));
+					update();
+					return;
 				}
 
 				// hit test for the shape
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
-						if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
-							// start moving
-							mode = MODE_MOVE;
-							operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
-							if (!layers[layer_id].shapes[i]->isSelected()) {
-								if (!ctrlPressed) {
-									// If CTRL is not pressed, then deselect all other shapes.
-									unselectAll();
-								}
-								layers[layer_id].shapes[i]->select();
-							}
-							update();
-							return;
-						}
-					}
-				}
-
-				// hit test for the linkage region
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_LINKAGE_REGION) {
-						if (layers[layer_id].shapes[i]->hit(screenToWorldCoordinates(e->x(), e->y()))) {
-							// start moving
-							mode = MODE_MOVE;
-							operation = boost::shared_ptr<Operation>(new MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
-							if (!layers[layer_id].shapes[i]->isSelected()) {
-								if (!ctrlPressed) {
-									// If CTRL is not pressed, then deselect all other shapes.
-									unselectAll();
-								}
-								layers[layer_id].shapes[i]->select();
-							}
-							update();
-							return;
-						}
-					}
+				if (design.hitTest(screenToWorldCoordinates(e->x(), e->y()), ctrlPressed, selected_shape)) {
+					// start moving
+					mode = MODE_MOVE;
+					operation = boost::shared_ptr<canvas::Operation>(new canvas::MoveOperation(screenToWorldCoordinates(e->x(), e->y())));
+					update();
+					return;
 				}
 
 				unselectAll();
 			}
-			else if (mode == MODE_RECTANGLE) {
+			else if (mode == MODE_FIXED_RECTANGLE || mode == MODE_MOVING_RECTANGLE) {
+				if (!current_shape) {
+					// start drawing a rectangle
+					unselectAll();
+					current_shape = boost::shared_ptr<canvas::Shape>(new canvas::Rectangle(screenToWorldCoordinates(e->x(), e->y())));
+					current_shape->startDrawing();
+					setMouseTracking(true);
+				}
+			}
+			else if (mode == MODE_FIXED_CIRCLE || mode == MODE_MOVING_CIRCLE) {
+				if (!current_shape) {
+					// start drawing a rectangle
+					unselectAll();
+					current_shape = boost::shared_ptr<canvas::Shape>(new canvas::Circle(screenToWorldCoordinates(e->x(), e->y())));
+					current_shape->startDrawing();
+					setMouseTracking(true);
+				}
+			}
+			else if (mode == MODE_FIXED_POLYGON || mode == MODE_MOVING_POLYGON || mode == MODE_LINKAGE_REGION || mode == MODE_LINKAGE_AVOIDANCE) {
 				if (current_shape) {
-					// do nothing
+					current_shape->addPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())));
 				}
 				else {
 					// start drawing a rectangle
 					unselectAll();
-					current_shape = boost::shared_ptr<Shape>(new Rectangle(Shape::TYPE_BODY, screenToWorldCoordinates(e->x(), e->y())));
-					current_shape->startDrawing();
-					setMouseTracking(true);
-				}
-			}
-			else if (mode == MODE_CIRCLE) {
-				if (current_shape) {
-					// do nothing
-				}
-				else {
-					// start drawing a circle
-					unselectAll();
-					current_shape = boost::shared_ptr<Shape>(new Circle(Shape::TYPE_BODY, screenToWorldCoordinates(e->x(), e->y())));
-					current_shape->startDrawing();
-					setMouseTracking(true);
-				}
-			}
-			else if (mode == MODE_POLYGON) {
-				if (current_shape) {
-					current_shape->addPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())));
-				}
-				else {
-					// start drawing a polygon
-					unselectAll();
-					current_shape = boost::shared_ptr<Shape>(new Polygon(Shape::TYPE_BODY, screenToWorldCoordinates(e->x(), e->y())));
-					current_shape->startDrawing();
-					setMouseTracking(true);
-				}
-			}
-			else if (mode == MODE_LINKAGE_REGION) {
-				if (current_shape) {
-					current_shape->addPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())));
-				}
-				else {
-					// start drawing a polygon
-					unselectAll();
-					current_shape = boost::shared_ptr<Shape>(new Polygon(Shape::TYPE_LINKAGE_REGION, screenToWorldCoordinates(e->x(), e->y())));
+					current_shape = boost::shared_ptr<canvas::Shape>(new canvas::Polygon(screenToWorldCoordinates(e->x(), e->y())));
 					current_shape->startDrawing();
 					setMouseTracking(true);
 				}
 			}
 			else if (mode == MODE_KINEMATICS) {
 				// convert the mouse position to the world coordinate system
-				glm::dvec2 pt((e->x() - origin.x()) / scale, -(e->y() - origin.y()) / scale);
+				glm::dvec2 pt = screenToWorldCoordinates(e->x(), e->y());
+				//glm::dvec2 pt((e->x() - origin.x()) / scale, -(e->y() - origin.y()) / scale);
 
 				// select a joint to move
 				selectedJoint = std::make_pair(-1, -1);
@@ -945,65 +716,35 @@ namespace canvas {
 		}
 		else {
 			if (mode == MODE_MOVE) {
-				boost::shared_ptr<MoveOperation> op = boost::static_pointer_cast<MoveOperation>(operation);
+				boost::shared_ptr<canvas::MoveOperation> op = boost::static_pointer_cast<canvas::MoveOperation>(operation);
 				glm::dvec2 dir = screenToWorldCoordinates(e->x(), e->y()) - op->pivot;
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->isSelected()) {
-						if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
-							// if the shape is a regular body, move it only for the selected layer
-							layers[layer_id].shapes[i]->translate(dir);
-						}
-						else {
-							// if the shape is a linkage region, move it for all the layers in order to make the position of the linkage region the same across the layers
-							for (int l = 0; l < layers.size(); l++) {
-								layers[l].shapes[i]->translate(dir);
-							}
-						}
-					}
-				}
+				design.move(dir);
+
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
 				update();
 			}
 			else if (mode == MODE_ROTATION) {
-				boost::shared_ptr<RotateOperation> op = boost::static_pointer_cast<RotateOperation>(operation);
+				boost::shared_ptr<canvas::RotateOperation> op = boost::static_pointer_cast<canvas::RotateOperation>(operation);
 				glm::dvec2 dir1 = op->pivot - op->rotation_center;
 				glm::dvec2 dir2 = screenToWorldCoordinates(e->x(), e->y()) - op->rotation_center;
 				double theta = atan2(dir2.y, dir2.x) - atan2(dir1.y, dir1.x);
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->isSelected()) {
-						if (layers[layer_id].shapes[i]->getSubType() == Shape::TYPE_BODY) {
-							// if the shape is a regular body, rotate it only for the selected layer
-							layers[layer_id].shapes[i]->rotate(theta);
-						}
-						else {
-							// if the shape is a linkage region, rotate it for all the layers in order to make the position of the linkage region the same across the layers
-							for (int l = 0; l < layers.size(); l++) {
-								layers[l].shapes[i]->rotate(theta);
-							}
-						}
-					}
-				}
+				design.rotate(theta);
+
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
 				update();
 			}
 			else if (mode == MODE_RESIZE) {
-				boost::shared_ptr<ResizeOperation> op = boost::static_pointer_cast<ResizeOperation>(operation);
+				boost::shared_ptr<canvas::ResizeOperation> op = boost::static_pointer_cast<canvas::ResizeOperation>(operation);
 				glm::dvec2 resize_center = selected_shape->localCoordinate(op->resize_center);
 				glm::dvec2 dir1 = selected_shape->localCoordinate(op->pivot) - resize_center;
 				glm::dvec2 dir2 = selected_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())) - resize_center;
 				glm::dvec2 resize_scale(dir2.x / dir1.x, dir2.y / dir1.y);
-				for (int i = 0; i < layers[layer_id].shapes.size(); ++i) {
-					if (layers[layer_id].shapes[i]->isSelected()) {
-						// resize the shape for all the layers in order to make the size of the shape the same across the layers
-						for (int l = 0; l < layers.size(); l++) {
-							layers[l].shapes[i]->resize(resize_scale, resize_center);
-						}
-					}
-				}
+				design.resize(resize_scale, resize_center);
+
 				op->pivot = screenToWorldCoordinates(e->x(), e->y());
 				update();
 			}
-			else if (mode == MODE_RECTANGLE || mode == MODE_CIRCLE || mode == MODE_POLYGON || mode == MODE_LINKAGE_REGION) {
+			else if (mode == MODE_FIXED_RECTANGLE || mode == MODE_FIXED_CIRCLE || mode == MODE_FIXED_POLYGON || mode == MODE_MOVING_RECTANGLE || mode == MODE_MOVING_CIRCLE || mode == MODE_MOVING_POLYGON || mode == MODE_LINKAGE_REGION || mode == MODE_LINKAGE_AVOIDANCE) {
 				if (current_shape) {
 					current_shape->updateByNewPoint(current_shape->localCoordinate(screenToWorldCoordinates(e->x(), e->y())), shiftPressed);
 					update();
@@ -1018,8 +759,6 @@ namespace canvas {
 					if (ctrlPressed) {
 						// move the selected joint
 						kinematics[linkage_id].diagram.joints[joint_id]->pos = pt;
-
-						updateDefectFlag(poses[linkage_id], kinematics[linkage_id]);
 					}
 					else {
 						// select a solution
@@ -1043,8 +782,6 @@ namespace canvas {
 									}
 								}
 							}
-
-							updateDefectFlag(solutions[linkage_id][selectedSolution].poses, kinematics[linkage_id]);
 						}
 					}
 
@@ -1064,8 +801,6 @@ namespace canvas {
 						kinematics[i].diagram.initialize();
 					}
 					update();
-
-					//updateDefectFlag(poses[linkage_id], kinematics[linkage_id]);
 				}
 			}
 		}
@@ -1075,27 +810,52 @@ namespace canvas {
 
 	void Canvas::mouseReleaseEvent(QMouseEvent* e) {
 		if (mode == MODE_MOVE || mode == MODE_ROTATION || mode == MODE_RESIZE) {
-			history.push(layers);
+			history.push(design);
 			mode = MODE_SELECT;
 		}
 	}
 
 	void Canvas::mouseDoubleClickEvent(QMouseEvent* e) {
-		if (mode == MODE_RECTANGLE || mode == MODE_CIRCLE || mode == MODE_POLYGON || mode == MODE_LINKAGE_REGION) {
-			if (current_shape) {
-				// The shape is created.
-				current_shape->completeDrawing();
-				//current_shape->select();
-				for (int i = 0; i < layers.size(); i++) {
-					layers[i].shapes.push_back(current_shape->clone());
+		if (mode == MODE_FIXED_RECTANGLE || mode == MODE_FIXED_CIRCLE || mode == MODE_FIXED_POLYGON) {
+			// The shape is created.
+			current_shape->completeDrawing();
+			design.fixed_bodies.push_back(current_shape->clone());
+			design.fixed_bodies.back()->select();
+		}
+		else if (mode == MODE_MOVING_RECTANGLE || mode == MODE_MOVING_CIRCLE || mode == MODE_MOVING_POLYGON) {
+			// The shape is created.
+			current_shape->completeDrawing();
+			design.addMovingBody(current_shape);
+		}
+		else if (mode == MODE_LINKAGE_REGION) {
+			// The shape is created.
+			current_shape->completeDrawing();
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				if (!design.moving_bodies[i].linkage_region) {
+					design.moving_bodies[i].linkage_region = current_shape->clone();
+					design.moving_bodies[i].linkage_region->select();
+					break;
 				}
-				layers[layer_id].shapes.back()->select();
-				mode = MODE_SELECT;
-				history.push(layers);
-				current_shape.reset();
-				operation.reset();
-				mainWin->ui.actionSelect->setChecked(true);
 			}
+		}
+		else if (mode == MODE_LINKAGE_AVOIDANCE) {
+			// The shape is created.
+			current_shape->completeDrawing();
+			for (int i = 0; i < design.moving_bodies.size(); i++) {
+				if (!design.moving_bodies[i].linkage_avoidance) {
+					design.moving_bodies[i].linkage_avoidance = current_shape->clone();
+					design.moving_bodies[i].linkage_avoidance->select();
+					break;
+				}
+			}
+		}
+
+		if (mode == MODE_FIXED_RECTANGLE || mode == MODE_FIXED_CIRCLE || mode == MODE_FIXED_POLYGON || mode == MODE_MOVING_RECTANGLE || mode == MODE_MOVING_CIRCLE || mode == MODE_MOVING_POLYGON || mode == MODE_LINKAGE_REGION || mode == MODE_LINKAGE_AVOIDANCE) {
+			mode = MODE_SELECT;
+			history.push(design);
+			current_shape.reset();
+			operation.reset();
+			mainWin->ui.actionSelect->setChecked(true);
 		}
 
 		setMouseTracking(false);

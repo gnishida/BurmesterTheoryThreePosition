@@ -89,9 +89,6 @@
     <ClCompile Include="..\kinematics\kinematics\SliderHinge.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
-    <ClCompile Include="Layer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Operation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -135,6 +132,12 @@
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
     <ClCompile Include="..\kinematics\kinematics\LinkageSynthesisRRRP.cpp">
+      <Filter>Source Files\kinematics</Filter>
+    </ClCompile>
+    <ClCompile Include="Design.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\kinematics\kinematics\clipper.cpp">
       <Filter>Source Files\kinematics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -192,9 +195,6 @@
     <ClInclude Include="..\kinematics\kinematics.h">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
-    <ClInclude Include="Layer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Operation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -235,6 +235,12 @@
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
     <ClInclude Include="..\kinematics\kinematics\LinkageSynthesis.h">
+      <Filter>Source Files\kinematics</Filter>
+    </ClInclude>
+    <ClInclude Include="Design.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\kinematics\kinematics\clipper.hpp">
       <Filter>Source Files\kinematics</Filter>
     </ClInclude>
   </ItemGroup>

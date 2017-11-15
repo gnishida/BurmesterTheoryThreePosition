@@ -16,7 +16,7 @@ namespace kinematics {
 	* @param solutions1	the output solutions for the world coordinates of the driving crank at the first pose, each of which contains a pair of the center point and the circle point
 	* @param solutions2	the output solutions for the world coordinates of the follower at the first pose, each of which contains a pair of the center point and the circle point
 	*/
-	void LinkageSynthesis4R::calculateSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, std::vector<std::pair<double, double>>& sigmas, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
+	void LinkageSynthesis4R::calculateSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& linkage_region_pts, int num_samples, const std::vector<Object2D>& fixed_body_pts, const Object2D& body_pts, std::vector<std::pair<double, double>>& sigmas, bool rotatable_crank, bool avoid_branch_defect, double min_link_length, std::vector<Solution>& solutions) {
 		solutions.clear();
 
 		srand(0);
@@ -36,7 +36,8 @@ namespace kinematics {
 		BBox bbox_local = boundingBox(region_local);
 
 		int cnt = 0;
-		for (int scale = 1; scale <= 5 && cnt < num_samples; scale++) {
+		for (int scale = 1; scale <= 5 && cnt == 0; scale++) {
+		//for (int scale = 1; scale <= 5 && cnt < num_samples; scale++) {
 			// calculate the enlarged linkage region for the sampling region
 			std::vector<glm::dvec2> enlarged_linkage_region_pts;
 			for (int i = 0; i < linkage_region_pts.size(); i++) {
@@ -57,8 +58,8 @@ namespace kinematics {
 			cv::fillPoly(img, pts, cv::Scalar(0), 4);
 			cv::Mat distMap;
 			cv::distanceTransform(img, distMap, CV_DIST_L2, 3);
-			//cv::imwrite("test2.png", img);
-			//cv::imwrite("test.png", distMap);
+			cv::imwrite("test2.png", img);
+			cv::imwrite("test.png", distMap);
 			distMap.convertTo(distMap, CV_64F);
 
 			// convert the coordinates of the enlarged regions to the local coordinate system of the first pose
@@ -275,7 +276,7 @@ namespace kinematics {
 		return true;
 	}
 
-	Solution LinkageSynthesis4R::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts, double position_error_weight, double orientation_error_weight, double linkage_location_weight, double smoothness_weight, double size_weight) {
+	Solution LinkageSynthesis4R::findBestSolution(const std::vector<glm::dmat3x3>& poses, const std::vector<Solution>& solutions, const std::vector<Object2D>& fixed_body_pts, const Object2D& body_pts, double position_error_weight, double orientation_error_weight, double linkage_location_weight, double smoothness_weight, double size_weight) {
 		// select the best solution based on the trajectory
 		if (solutions.size() > 0) {
 			double min_cost = std::numeric_limits<double>::max();
@@ -303,7 +304,7 @@ namespace kinematics {
 	/**
 	 * Construct a linkage.
 	 */
-	Kinematics LinkageSynthesis4R::constructKinematics(const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& body_pts) {
+	Kinematics LinkageSynthesis4R::constructKinematics(const std::vector<glm::dvec2>& points, const Object2D& body_pts) {
 		Kinematics kin;
 		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(0, true, points[0])));
 		kin.diagram.addJoint(boost::shared_ptr<kinematics::PinJoint>(new kinematics::PinJoint(1, true, points[1])));
@@ -315,7 +316,7 @@ namespace kinematics {
 
 		// update the geometry
 		kin.diagram.bodies.clear();
-		kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts[0]);
+		kin.diagram.addBody(kin.diagram.joints[2], kin.diagram.joints[3], body_pts);
 
 		return kin;
 	}
@@ -621,7 +622,7 @@ namespace kinematics {
 		return false;
 	}
 
-	bool LinkageSynthesis4R::checkCollision(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const std::vector<std::vector<glm::dvec2>>& fixed_body_pts, const std::vector<glm::dvec2>& body_pts) {
+	bool LinkageSynthesis4R::checkCollision(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const std::vector<Object2D>& fixed_body_pts, const Object2D& body_pts) {
 		kinematics::Kinematics kinematics;
 
 		// construct a linkage
@@ -771,20 +772,20 @@ namespace kinematics {
 		return false;
 	}
 
-	double LinkageSynthesis4R::tortuosityOfTrajectory(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const std::vector<glm::dvec2>& body_pts) {
+	double LinkageSynthesis4R::tortuosityOfTrajectory(const std::vector<glm::dmat3x3>& poses, const std::vector<glm::dvec2>& points, const Object2D& body_pts) {
 		// calculate the local coordinates of the body points
 		glm::dmat3x3 inv_pose0 = glm::inverse(poses[0]);
-		std::vector<glm::dvec2> body_pts_local(body_pts.size());
-		for (int i = 0; i < body_pts.size(); i++) {
-			body_pts_local[i] = glm::dvec2(inv_pose0 * glm::dvec3(body_pts[i], 1));
+		std::vector<glm::dvec2> body_pts_local(body_pts.polygons[0].points.size());
+		for (int i = 0; i < body_pts.polygons[0].points.size(); i++) {
+			body_pts_local[i] = glm::dvec2(inv_pose0 * glm::dvec3(body_pts.polygons[0].points[i], 1));
 		}
 
 		// calculate the length of the motion using straight lines between poses
 		double length_of_straight = 0.0;
-		std::vector<glm::dvec2> prev_body_pts = body_pts;
+		std::vector<glm::dvec2> prev_body_pts = body_pts.polygons[0].points;
 		for (int i = 1; i < poses.size(); i++) {
-			std::vector<glm::dvec2> next_body_pts(body_pts.size());
-			for (int k = 0; k < body_pts.size(); k++) {
+			std::vector<glm::dvec2> next_body_pts(body_pts.polygons[0].points.size());
+			for (int k = 0; k < body_pts.polygons[0].points.size(); k++) {
 				next_body_pts[k] = glm::dvec2(poses[i] * glm::dvec3(body_pts_local[k], 1));
 				length_of_straight += glm::length(next_body_pts[k] - prev_body_pts[k]);
 			}
@@ -809,7 +810,7 @@ namespace kinematics {
 		kinematics.diagram.initialize();
 
 		// initialize the trajectory of the moving body
-		prev_body_pts = body_pts;
+		prev_body_pts = body_pts.polygons[0].points;
 		double length_of_trajectory = 0.0;
 
 		// calculate the rotational angle of the driving crank for 1st, 2nd, and last poses
@@ -888,7 +889,7 @@ namespace kinematics {
 			double angle = atan2(kinematics.diagram.joints[2]->pos.y - points[0].y, kinematics.diagram.joints[2]->pos.x - points[0].x);
 
 			// update the lengths of the trajectory of the moving body
-			std::vector<glm::dvec2> next_body_pts = kinematics.diagram.bodies[0]->getActualPoints();
+			std::vector<glm::dvec2> next_body_pts = kinematics.diagram.bodies[0]->getActualPoints()[0];
 			for (int i = 0; i < next_body_pts.size(); i++) {
 				double length = glm::length(next_body_pts[i] - prev_body_pts[i]);
 				length_of_trajectory += length;

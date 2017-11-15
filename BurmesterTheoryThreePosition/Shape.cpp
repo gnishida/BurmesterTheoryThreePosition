@@ -7,8 +7,7 @@ namespace canvas {
 	QImage Shape::rotation_marker = QImage("resources/rotation_marker.png").scaled(16, 16);
 	std::vector<QBrush> Shape::brushes = { QBrush(QColor(0, 255, 0, 60)), QBrush(QColor(0, 0, 255, 30)) };
 
-	Shape::Shape(int subtype) {
-		this->subtype = subtype;
+	Shape::Shape() {
 		selected = false;
 		currently_drawing = false;
 	}
@@ -74,4 +73,9 @@ namespace canvas {
 	glm::dvec2 Shape::worldCoordinate(const glm::dvec2& point) const {
 		return glm::dvec2(point.x * cos(theta) - point.y * sin(theta) + pos.x, point.x * sin(theta) + point.y * cos(theta) + pos.y);
 	}
+
+	glm::dvec2 Shape::worldCoordinate(double x, double y) const {
+		return glm::dvec2(x * cos(theta) - y * sin(theta) + pos.x, x * sin(theta) + y * cos(theta) + pos.y);
+	}
+
 }

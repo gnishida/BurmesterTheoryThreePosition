@@ -4,11 +4,11 @@
 
 namespace canvas {
 
-	Polygon::Polygon(int subtype) : Shape(subtype) {
+	Polygon::Polygon() {
 		theta = 0;
 	}
 
-	Polygon::Polygon(int subtype, const glm::dvec2& point) : Shape(subtype) {
+	Polygon::Polygon(const glm::dvec2& point) {
 		points.push_back(glm::dvec2());
 		pos = point;
 		theta = 0;
@@ -19,7 +19,7 @@ namespace canvas {
 	/**
 	* Construct a polygon from the xml dom node.
 	*/
-	Polygon::Polygon(int subtype, QDomNode& node) : Shape(subtype) {
+	Polygon::Polygon(QDomNode& node) {
 		QDomNode params_node = node.firstChild();
 		while (!params_node.isNull()) {
 			if (params_node.toElement().tagName() == "pose") {
@@ -52,7 +52,7 @@ namespace canvas {
 		return boost::shared_ptr<Shape>(new Polygon(*this));
 	}
 
-	void Polygon::draw(QPainter& painter, const QPointF& origin, double scale) const {
+	void Polygon::draw(QPainter& painter, const QColor& brush_color, const QPointF& origin, double scale) const {
 		painter.save();
 
 		painter.translate(origin.x() + pos.x * scale, origin.y() - pos.y * scale);
@@ -64,12 +64,7 @@ namespace canvas {
 		else {
 			painter.setPen(QPen(QColor(0, 0, 0), 1));
 		}
-		if (currently_drawing) {
-			painter.setBrush(QBrush(QColor(0, 0, 0, 0)));
-		}
-		else {
-			painter.setBrush(brushes[subtype]);
-		}
+		painter.setBrush(brush_color);
 
 		// draw edges
 		QPolygonF pol;
@@ -103,8 +98,8 @@ namespace canvas {
 		painter.restore();
 	}
 
-	QDomElement Polygon::toXml(QDomDocument& doc) const {
-		QDomElement shape_node = doc.createElement("shape");
+	QDomElement Polygon::toXml(QDomDocument& doc, const QString& node_name) const {
+		QDomElement shape_node = doc.createElement(node_name);
 		shape_node.setAttribute("type", "polygon");
 		shape_node.setAttribute("subtype", subtype);
 
